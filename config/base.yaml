@@ -1,0 +1,231 @@
+# Base configuration for Cortex Core
+# All other configs inherit from this
+
+system:
+  name: "Cortex Core"
+  version: "3.0.0"
+  environment: "${CORTEX_ENVIRONMENT:-development}"
+  log_level: "${CORTEX_LOG_LEVEL:-INFO}"
+  mode: "adaptive"  # adaptive, conservative, aggressive
+  timezone: "UTC"
+
+security:
+  enabled: true
+  encryption:
+    enabled: true
+    algorithm: "AES-256-GCM"
+    key_rotation_days: 30
+  authentication:
+    enabled: false
+    method: "jwt"
+    token_expiry_hours: 24
+  authorization:
+    enabled: false
+    roles: ["admin", "operator", "viewer"]
+  audit:
+    enabled: true
+    retention_days: 90
+  policies:
+    max_input_size: 10485760  # 10MB
+    max_depth: 10
+    max_array_length: 1000
+    max_string_length: 10000
+
+cognitive:
+  intuition:
+    creativity_level: 0.7
+    pattern_recognition_enabled: true
+    divergent_thinking_enabled: true
+  logic:
+    reasoning_depth: 3
+    symbolic_analysis_enabled: true
+    temporal_analysis_enabled: true
+  fusion:
+    integration_method: "weighted_average"
+    conflict_resolution: "confidence_based"
+  executive:
+    decision_threshold: 0.7
+    attention_mechanism: "adaptive"
+  memory:
+    stm_capacity: 1000
+    ltm_capacity: 100000
+    consolidation_threshold: 0.7
+    replay_enabled: true
+
+performance:
+  caching:
+    enabled: true
+    ttl_seconds: 3600
+    max_size_mb: 1024
+  optimization:
+    enabled: true
+    schedule: "0 */6 * * *"  # Every 6 hours
+    emergency_threshold: 0.9
+  monitoring:
+    metrics_collection: true
+    sampling_rate: 0.1
+
+resilience:
+  circuit_breaker:
+    failure_threshold: 5
+    recovery_timeout: 60
+    half_open_max_attempts: 3
+  retry:
+    max_retries: 3
+    base_delay: 1.0
+    max_delay: 30.0
+    jitter: true
+  fallback:
+    enabled: true
+    degradation_levels: ["full", "partial", "minimal"]
+
+monitoring:
+  health_check_interval: 30
+  metrics_port: 8081
+  alerting:
+    enabled: false
+  tracing:
+    enabled: false
+    exporter: "jaeger"
+
+# Universal Enterprise Integration - Connect to ANY monitoring platform
+integration:
+  enabled: true
+  export_interval: 60
+
+  # Metrics export to any platform
+  metrics:
+    prometheus:
+      enabled: true
+      type: prometheus
+      port: 8000
+      path: "/metrics"
+
+    datadog:
+      enabled: false
+      type: dogstatsd
+      host: "${DATADOG_HOST:-localhost}"
+      port: "${DATADOG_PORT:-8125}"
+
+    statsd:
+      enabled: false
+      type: statsd
+      host: "${STATSD_HOST:-localhost}"
+      port: "${STATSD_PORT:-8125}"
+
+    cloudwatch:
+      enabled: false
+      type: cloudwatch
+      region: "${AWS_REGION:-us-east-1}"
+      namespace: "CortexCore"
+
+    graphite:
+      enabled: false
+      type: graphite
+      host: "${GRAPHITE_HOST:-localhost}"
+      port: "${GRAPHITE_PORT:-2003}"
+
+  # Alert dispatch to any platform
+  alerts:
+    pagerduty:
+      enabled: false
+      type: pagerduty
+      routing_key: "${PAGERDUTY_ROUTING_KEY}"
+      api_url: "https://events.pagerduty.com/v2/enqueue"
+
+    slack:
+      enabled: false
+      type: slack
+      webhook_url: "${SLACK_WEBHOOK_URL}"
+
+    teams:
+      enabled: false
+      type: teams
+      webhook_url: "${TEAMS_WEBHOOK_URL}"
+
+    generic_webhook:
+      enabled: false
+      type: generic
+      webhook_url: "${GENERIC_WEBHOOK_URL}"
+      headers:
+        Authorization: "Bearer ${WEBHOOK_TOKEN}"
+        Content-Type: "application/json"
+      template:
+        environment: "${ENVIRONMENT:-production}"
+        service: "cortex-core-enterprise"
+
+  # Logging integration for any platform
+  logging:
+    structured: true
+    format: "json"
+    destinations:
+      - type: "console"
+        enabled: true
+      - type: "file"
+        enabled: true
+        path: "/app/logs/cortex.log"
+      - type: "syslog"
+        enabled: false
+        host: "${SYSLOG_HOST:-localhost}"
+        port: "${SYSLOG_PORT:-514}"
+      - type: "fluentd"
+        enabled: false
+        host: "${FLUENTD_HOST:-localhost}"
+        port: "${FLUENTD_PORT:-24224}"
+        tag: "cortex.core"
+
+  # API endpoints for universal compatibility
+  api:
+    enabled: true
+    base_url: "/api/v1"
+    authentication:
+      enabled: false  # Configure as needed
+      type: "bearer"  # or "basic", "oauth2", etc.
+    rate_limiting:
+      enabled: true
+      requests_per_minute: 1000
+
+api:
+  enabled: true
+  host: "0.0.0.0"
+  port: 8080
+  workers: 4
+  cors:
+    enabled: true
+    origins: ["*"]
+  rate_limit:
+    enabled: true
+    requests_per_minute: 1000
+  documentation:
+    enabled: true
+    path: "/docs"
+
+logging:
+  level: "${CORTEX_LOG_LEVEL:-INFO}"
+  format: "json"
+  output:
+    file:
+      enabled: true
+      path: "/app/logs/cortex.log"
+      max_size_mb: 100
+      backup_count: 10
+    stdout: true
+  retention:
+    days: 30
+    compression: true
+
+storage:
+  database:
+    type: "sqlite"
+    path: "/app/data/cortex.db"
+    connection_pool:
+      size: 10
+      max_overflow: 5
+  cache:
+    type: "memory"
+    ttl_seconds: 3600
+    max_size_mb: 1024
+  backup:
+    enabled: false
+    schedule: "0 2 * * *"
+    retention_days: 30

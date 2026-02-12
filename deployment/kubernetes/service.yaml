@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: cortex-core-api
+  labels:
+    app: cortex-core
+    component: api
+spec:
+  selector:
+    app: cortex-core
+    component: api
+  ports:
+  - name: api
+    port: 80
+    targetPort: 8080
+    protocol: TCP
+  - name: metrics
+    port: 8081
+    targetPort: 8081
+    protocol: TCP
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cortex-core-metrics
+  labels:
+    app: cortex-core
+    component: metrics
+spec:
+  selector:
+    app: cortex-core
+    component: api
+  ports:
+  - name: metrics
+    port: 8081
+    targetPort: 8081
+    protocol: TCP
+  type: ClusterIP

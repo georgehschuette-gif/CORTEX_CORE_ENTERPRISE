@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cortex-core
+  labels:
+    app: cortex-core
+    component: api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: cortex-core
+  template:
+    metadata:
+      labels:
+        app: cortex-core
+        component: api
+    spec:
+      containers:
+      - name: cortex-core
+        image: cortex-core:latest
+        ports:
+        - containerPort: 8080
+          name: api
+        - containerPort: 8081
+          name: metrics
+        env:
+        - name: CORTEX_ENVIRONMENT
+          value: "production"
+        - name: CORTEX_LOG_LEVEL
+          value: "INFO"
+        - name: CORTEX_API_HOST
+          value: "0.0.0.0"
+        - name: CORTEX_API_PORT
+          value: "8080"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "2000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        volumeMounts:
+        - name: config-volume
+          mountPath: /app/config
+        - name: data-volume
+          mountPath: /app/data
+        - name: logs-volume
+          mountPath: /app/logs
+      volumes:
+      - name: config-volume
+        configMap:
+          name: cortex-core-config
+      - name: data-volume
+        persistentVolumeClaim:
+          claimName: cortex-core-data
+      - name: logs-volume
+        emptyDir: {}
+      serviceAccountName: cortex-core-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000

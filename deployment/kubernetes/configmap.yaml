@@ -1,0 +1,143 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cortex-core-config
+data:
+  base.yaml: |
+    system:
+      name: "Cortex Core"
+      version: "3.0.0"
+      environment: "production"
+      log_level: "INFO"
+      mode: "adaptive"
+      timezone: "UTC"
+
+    security:
+      enabled: true
+      encryption:
+        enabled: true
+        algorithm: "AES-256-GCM"
+        key_rotation_days: 30
+      authentication:
+        enabled: true
+        method: "jwt"
+        token_expiry_hours: 24
+      authorization:
+        enabled: true
+        roles: ["admin", "operator", "viewer"]
+      audit:
+        enabled: true
+        retention_days: 90
+      policies:
+        max_input_size: 10485760
+        max_depth: 10
+        max_array_length: 1000
+        max_string_length: 10000
+
+    cognitive:
+      intuition:
+        creativity_level: 0.7
+        pattern_recognition_enabled: true
+        divergent_thinking_enabled: true
+      logic:
+        reasoning_depth: 3
+        symbolic_analysis_enabled: true
+        temporal_analysis_enabled: true
+      fusion:
+        integration_method: "weighted_average"
+        conflict_resolution: "confidence_based"
+      executive:
+        decision_threshold: 0.7
+        attention_mechanism: "adaptive"
+      memory:
+        stm_capacity: 1000
+        ltm_capacity: 100000
+        consolidation_threshold: 0.7
+        replay_enabled: true
+
+    performance:
+      caching:
+        enabled: true
+        ttl_seconds: 3600
+        max_size_mb: 1024
+      optimization:
+        enabled: true
+        schedule: "0 */6 * * *"
+        emergency_threshold: 0.9
+      monitoring:
+        metrics_collection: true
+        sampling_rate: 0.1
+
+    resilience:
+      circuit_breaker:
+        failure_threshold: 5
+        recovery_timeout: 60
+        half_open_max_attempts: 3
+      retry:
+        max_retries: 3
+        base_delay: 1.0
+        max_delay: 30.0
+        jitter: true
+      fallback:
+        enabled: true
+        degradation_levels: ["full", "partial", "minimal"]
+
+    monitoring:
+      health_check_interval: 30
+      metrics_port: 8081
+      alerting:
+        enabled: true
+      tracing:
+        enabled: true
+        exporter: "jaeger"
+
+    api:
+      enabled: true
+      host: "0.0.0.0"
+      port: 8080
+      workers: 4
+      cors:
+        enabled: true
+        origins: ["*"]
+      rate_limit:
+        enabled: true
+        requests_per_minute: 1000
+      documentation:
+        enabled: true
+        path: "/docs"
+
+    logging:
+      level: "INFO"
+      format: "json"
+      output:
+        file:
+          enabled: true
+          path: "/app/logs/cortex.log"
+          max_size_mb: 100
+          backup_count: 10
+        stdout: true
+      retention:
+        days: 30
+        compression: true
+
+    storage:
+      database:
+        type: "postgresql"
+        host: "cortex-core-db"
+        port: 5432
+        database: "cortex"
+        user: "cortex"
+        password: "${DB_PASSWORD}"
+        connection_pool:
+          size: 10
+          max_overflow: 5
+      cache:
+        type: "redis"
+        host: "cortex-core-redis"
+        port: 6379
+        ttl_seconds: 3600
+        max_size_mb: 1024
+      backup:
+        enabled: true
+        schedule: "0 2 * * *"
+        retention_days: 30
