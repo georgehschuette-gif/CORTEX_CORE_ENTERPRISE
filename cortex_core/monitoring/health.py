@@ -5,7 +5,7 @@ Health Monitor for Cortex Core.
 import logging
 import threading
 import time
-from typing import Dict, Any, Callable
+from typing import Any, Callable, Dict
 
 logger = logging.getLogger(__name__)
 
@@ -23,8 +23,7 @@ class HealthMonitor:
         self.health_checks: Dict[str, Callable[[], bool]] = {}
         self.health_status: Dict[str, Any] = {}
 
-        logger.info(
-            f"Health Monitor initialized with {check_interval}s interval")
+        logger.info(f"Health Monitor initialized with {check_interval}s interval")
 
     def register_check(self, name: str, check_func: Callable[[], bool]):
         """
@@ -74,15 +73,15 @@ class HealthMonitor:
             try:
                 is_healthy = check_func()
                 status[name] = {
-                    'healthy': is_healthy,
-                    'timestamp': time.time(),
-                    'error': None
+                    "healthy": is_healthy,
+                    "timestamp": time.time(),
+                    "error": None,
                 }
             except Exception as e:
                 status[name] = {
-                    'healthy': False,
-                    'timestamp': time.time(),
-                    'error': str(e)
+                    "healthy": False,
+                    "timestamp": time.time(),
+                    "error": str(e),
                 }
 
         self.health_status = status
@@ -96,17 +95,16 @@ class HealthMonitor:
             Health status dictionary
         """
         overall_healthy = all(
-            check.get('healthy', False)
-            for check in self.health_status.values()
+            check.get("healthy", False) for check in self.health_status.values()
         )
 
         return {
-            'overall_healthy': overall_healthy,
-            'checks': self.health_status,
-            'timestamp': time.time(),
-            'total_checks': len(self.health_checks)
+            "overall_healthy": overall_healthy,
+            "checks": self.health_status,
+            "timestamp": time.time(),
+            "total_checks": len(self.health_checks),
         }
 
     def is_healthy(self) -> bool:
         """Check if system is healthy."""
-        return self.get_status()['overall_healthy']
+        return self.get_status()["overall_healthy"]

@@ -3,9 +3,9 @@ Memory System (Hippocampal Formation).
 """
 
 import logging
-from typing import Dict, Any, Optional, List
-from datetime import datetime
 import uuid
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -36,11 +36,11 @@ class MemorySystem:
             memory_id = str(uuid.uuid4())
 
             memory_entry = {
-                'id': memory_id,
-                'data': data,
-                'timestamp': datetime.utcnow().isoformat(),
-                'access_count': 0,
-                'last_accessed': datetime.utcnow().isoformat()
+                "id": memory_id,
+                "data": data,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "access_count": 0,
+                "last_accessed": datetime.now(timezone.utc).isoformat(),
             }
 
             self.memory[memory_id] = memory_entry
@@ -67,8 +67,8 @@ class MemorySystem:
         try:
             if memory_id in self.memory:
                 entry = self.memory[memory_id]
-                entry['access_count'] += 1
-                entry['last_accessed'] = datetime.utcnow().isoformat()
+                entry["access_count"] += 1
+                entry["last_accessed"] = datetime.now(timezone.utc).isoformat()
 
                 logger.debug(f"Retrieved memory entry: {memory_id}")
                 return entry
@@ -93,7 +93,7 @@ class MemorySystem:
             results = []
 
             for entry in self.memory.values():
-                if self._matches_query(entry['data'], query):
+                if self._matches_query(entry["data"], query):
                     results.append(entry)
 
             logger.debug(f"Memory search found {len(results)} matches")
@@ -103,8 +103,7 @@ class MemorySystem:
             logger.error(f"Memory search failed: {e}")
             return []
 
-    def _matches_query(
-            self, data: Dict[str, Any], query: Dict[str, Any]) -> bool:
+    def _matches_query(self, data: Dict[str, Any], query: Dict[str, Any]) -> bool:
         """Check if data matches query."""
         # Simple matching - check if all query keys exist in data
         for key, value in query.items():

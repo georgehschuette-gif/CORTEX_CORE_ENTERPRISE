@@ -3,16 +3,16 @@ Circuit Breaker pattern implementation.
 """
 
 import logging
-import time
-from typing import Optional, Callable
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
+from typing import Callable, Optional
 
 logger = logging.getLogger(__name__)
 
 
 class CircuitState(Enum):
     """Circuit breaker states."""
+
     CLOSED = "closed"
     OPEN = "open"
     HALF_OPEN = "half_open"
@@ -30,7 +30,7 @@ class CircuitBreaker:
         self,
         failure_threshold: int = 5,
         recovery_timeout: float = 60.0,
-        half_open_max_attempts: int = 3
+        half_open_max_attempts: int = 3,
     ):
         self.failure_threshold = failure_threshold
         self.recovery_timeout = recovery_timeout
@@ -46,8 +46,7 @@ class CircuitBreaker:
         self.successful_requests = 0
         self.failed_requests = 0
 
-        logger.info(
-            f"Circuit breaker initialized: threshold={failure_threshold}")
+        logger.info(f"Circuit breaker initialized: threshold={failure_threshold}")
 
     def allow_request(self) -> bool:
         """Check if request should be allowed."""
@@ -57,8 +56,8 @@ class CircuitBreaker:
             # Check if recovery timeout has passed
             if self.last_failure_time:
                 time_since_failure = (
-                    datetime.utcnow() -
-                    self.last_failure_time).total_seconds()
+                    datetime.utcnow() - self.last_failure_time
+                ).total_seconds()
                 if time_since_failure >= self.recovery_timeout:
                     self._transition_to_half_open()
                     return True
@@ -99,8 +98,7 @@ class CircuitBreaker:
         self.state = CircuitState.OPEN
         self.half_open_attempts = 0
 
-        logger.warning(
-            f"Circuit breaker transitioned from {old_state} to OPEN")
+        logger.warning(f"Circuit breaker transitioned from {old_state} to OPEN")
 
     def _transition_to_half_open(self):
         """Transition to HALF_OPEN state."""
@@ -108,8 +106,7 @@ class CircuitBreaker:
         self.state = CircuitState.HALF_OPEN
         self.half_open_attempts = 0
 
-        logger.info(
-            f"Circuit breaker transitioned from {old_state} to HALF_OPEN")
+        logger.info(f"Circuit breaker transitioned from {old_state} to HALF_OPEN")
 
     def _transition_to_closed(self):
         """Transition to CLOSED state."""
@@ -125,29 +122,25 @@ class CircuitBreaker:
         """Get circuit breaker metrics."""
         success_rate = (
             self.successful_requests / self.total_requests
-            if self.total_requests > 0 else 0
+            if self.total_requests > 0
+            else 0
         )
 
         return {
-            'state': self.state.value,
-            'failure_count': self.failure_count,
-            'total_requests': self.total_requests,
-            'successful_requests': self.successful_requests,
-            'failed_requests': self.failed_requests,
-            'success_rate': success_rate,
-            'last_failure_time': (
-                self.last_failure_time.isoformat()
-                if self.last_failure_time else None
+            "state": self.state.value,
+            "failure_count": self.failure_count,
+            "total_requests": self.total_requests,
+            "successful_requests": self.successful_requests,
+            "failed_requests": self.failed_requests,
+            "success_rate": success_rate,
+            "last_failure_time": (
+                self.last_failure_time.isoformat() if self.last_failure_time else None
             ),
-            'half_open_attempts': self.half_open_attempts
+            "half_open_attempts": self.half_open_attempts,
         }
 
     async def execute(
-        self,
-        func: Callable,
-        fallback: Optional[Callable] = None,
-        *args,
-        **kwargs
+        self, func: Callable, fallback: Optional[Callable] = None, *args, **kwargs
     ):
         """
         Execute function with circuit breaker protection.
@@ -168,7 +161,11 @@ class CircuitBreaker:
         if not self.allow_request():
             if fallback:
                 logger.warning("Circuit open, using fallback")
-                return fallback(*args, **kwargs) if not asyncio.iscoroutinefunction(fallback) else await fallback(*args, **kwargs)
+                return (
+                    fallback(*args, **kwargs)
+                    if not asyncio.iscoroutinefunction(fallback)
+                    else await fallback(*args, **kwargs)
+                )
             raise Exception("Circuit breaker is open")
 
         try:
@@ -185,5 +182,9 @@ class CircuitBreaker:
             logger.error(f"Circuit breaker caught error: {e}")
 
             if fallback:
-                return fallback(*args, **kwargs) if not asyncio.iscoroutinefunction(fallback) else await fallback(*args, **kwargs)
+                return (
+                    fallback(*args, **kwargs)
+                    if not asyncio.iscoroutinefunction(fallback)
+                    else await fallback(*args, **kwargs)
+                )
             raise

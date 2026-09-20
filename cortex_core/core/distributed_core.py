@@ -4,15 +4,14 @@ Distributed Cortex Core implementation.
 
 import asyncio
 import logging
-import json
-from typing import Dict, Any, List, Optional
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
+from typing import Any, Callable, Dict, List, Optional
 
 from cortex_core.core.cortex_core import CortexCore
-from cortex_core.exceptions import DistributedError
 from cortex_core.distributed.consensus import RaftConsensus
 from cortex_core.distributed.coordinator import DistributedCoordinator
+from cortex_core.exceptions import DistributedError
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +19,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class NodeInfo:
     """Information about a cluster node."""
+
     node_id: str
     address: str
     status: str  # leader, follower, candidate
@@ -39,7 +39,8 @@ class DistributedCortexCore(CortexCore):
         node_id: str,
         peers: List[str],
         config: Dict[str, Any],
-        bootstrap_node: Optional[str] = None
+        bootstrap_node: Optional[str] = None,
+        consensus_factory: Optional[Callable[..., "RaftConsensus"]] = None,
     ):
         """
         Initialize distributed Cortex Core.
@@ -49,6 +50,9 @@ class DistributedCortexCore(CortexCore):
             peers: List of peer addresses
             config: Configuration
             bootstrap_node: Bootstrap node for joining cluster
+            consensus_factory: Optional callable returning a RaftConsensus
+                instance. Defaults to the real RaftConsensus class.
+                Provided as a seam for dependency injection and testing.
         """
         super().__init__(config, security_key=None)
 
@@ -63,21 +67,27 @@ class DistributedCortexCore(CortexCore):
         # Node registry
         self.nodes = {}
 
+        # Background monitoring task handle (set in start(); cleared in stop())
+        self._monitor_task = None
+
+        # Factory for the consensus implementation (default: RaftConsensus).
+        # Injected via __init__ so callers/tests can substitute a real
+        # alternate consensus without patching module globals.
+        self._consensus_factory = consensus_factory or RaftConsensus
+
         logger.info(f"Distributed Cortex Core initialized: {node_id}")
 
     async def start(self):
         """Start distributed node."""
         try:
-            # Initialize consensus
-            self.consensus = RaftConsensus(
-                node_id=self.node_id,
-                peers=self.peers
+            # Initialize consensus via the configured factory.
+            self.consensus = self._consensus_factory(
+                node_id=self.node_id, peers=self.peers
             )
 
             # Initialize coordinator
             self.coordinator = DistributedCoordinator(
-                node_id=self.node_id,
-                peers=self.peers
+                node_id=self.node_id, peers=self.peers
             )
 
             # Join cluster
@@ -90,8 +100,9 @@ class DistributedCortexCore(CortexCore):
             # Start consensus
             await self.consensus.start()
 
-            # Start monitoring
-            asyncio.create_task(self._monitor_cluster())
+            # Start monitoring. start() is async, so a loop is guaranteed
+            # to be running here; create_task schedules the monitor on it.
+            self._monitor_task = asyncio.create_task(self._monitor_cluster())
 
             logger.info(f"Node {self.node_id} started successfully")
 
@@ -99,8 +110,19 @@ class DistributedCortexCore(CortexCore):
             logger.error(f"Failed to start node {self.node_id}: {e}")
             raise DistributedError(f"Node startup failed: {e}")
 
-    async def process_distributed(
-            self, data: Dict[str, Any]) -> Dict[str, Any]:
+    async def stop(self):
+        """Stop the distributed node and cancel background tasks."""
+        if self._monitor_task is not None and not self._monitor_task.done():
+            self._monitor_task.cancel()
+            try:
+                await self._monitor_task
+            except asyncio.CancelledError:
+                pass
+            self._monitor_task = None
+
+        logger.info(f"Node {self.node_id} stopped")
+
+    async def process_distributed(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Process data with distributed consensus.
 
@@ -124,27 +146,28 @@ class DistributedCortexCore(CortexCore):
         await self._replicate_result(data, result)
 
         # Add consensus metadata
-        result['consensus'] = {
-            'node_id': self.node_id,
-            'leader': True,
-            'term': self.consensus.current_term,
-            'replicated': True
+        result["consensus"] = {
+            "node_id": self.node_id,
+            "leader": True,
+            "term": self.consensus.current_term,
+            "replicated": True,
         }
 
         return result
 
     async def _forward_to_leader(
-            self, leader_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
+        self, leader_id: str, data: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Forward processing request to leader."""
         try:
             # In a real implementation, this would make an RPC call
             # For now, simulate local processing
             result = self.process(data)
 
-            result['consensus'] = {
-                'node_id': self.node_id,
-                'leader': False,
-                'forwarded_to': leader_id
+            result["consensus"] = {
+                "node_id": self.node_id,
+                "leader": False,
+                "forwarded_to": leader_id,
             }
 
             return result
@@ -153,18 +176,20 @@ class DistributedCortexCore(CortexCore):
             logger.error(f"Failed to forward to leader {leader_id}: {e}")
             raise DistributedError(f"Forwarding failed: {e}")
 
-    async def _replicate_result(
-            self, data: Dict[str, Any], result: Dict[str, Any]):
+    async def _replicate_result(self, data: Dict[str, Any], result: Dict[str, Any]):
         """Replicate result to followers."""
         replication_tasks = []
 
         for peer in self.peers:
-            task = self.coordinator.replicate(peer, {
-                'data': data,
-                'result': result,
-                'node_id': self.node_id,
-                'timestamp': datetime.utcnow().isoformat()
-            })
+            task = self.coordinator.replicate(
+                peer,
+                {
+                    "data": data,
+                    "result": result,
+                    "node_id": self.node_id,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                },
+            )
             replication_tasks.append(task)
 
         # Wait for majority
@@ -174,7 +199,8 @@ class DistributedCortexCore(CortexCore):
 
         if successful < len(self.peers) // 2 + 1:
             logger.warning(
-                f"Replication failed: only {successful}/{len(self.peers)} successful")
+                f"Replication failed: only {successful}/{len(self.peers)} successful"
+            )
 
     async def _monitor_cluster(self):
         """Monitor cluster health."""

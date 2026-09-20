@@ -2,10 +2,11 @@
 JWT token management for authentication.
 """
 
-import jwt
 import time
-from typing import Dict, Any, Optional
 from datetime import datetime, timedelta
+from typing import Any, Dict
+
+import jwt
 
 
 class JWTManager:
@@ -13,8 +14,9 @@ class JWTManager:
     JSON Web Token manager for authentication.
     """
 
-    def __init__(self, secret_key: str = None,
-                 algorithm: str = "HS256", expiry_hours: int = 24):
+    def __init__(
+        self, secret_key: str = None, algorithm: str = "HS256", expiry_hours: int = 24
+    ):
         """
         Initialize JWT manager.
 
@@ -39,11 +41,13 @@ class JWTManager:
         """
         # Add standard claims
         now = datetime.utcnow()
-        payload.update({
-            'iat': int(now.timestamp()),
-            'exp': int((now + timedelta(hours=self.expiry_hours)).timestamp()),
-            'iss': 'cortex-core'
-        })
+        payload.update(
+            {
+                "iat": int(now.timestamp()),
+                "exp": int((now + timedelta(hours=self.expiry_hours)).timestamp()),
+                "iss": "cortex-core",
+            }
+        )
 
         token = jwt.encode(payload, self.secret_key, algorithm=self.algorithm)
         return token
@@ -62,14 +66,12 @@ class JWTManager:
             jwt.InvalidTokenError: If token is invalid
         """
         try:
-            payload = jwt.decode(
-                token, self.secret_key, algorithms=[
-                    self.algorithm])
+            payload = jwt.decode(token, self.secret_key, algorithms=[self.algorithm])
 
             # Check expiry
-            if payload.get('exp'):
+            if payload.get("exp"):
                 now = int(time.time())
-                if now > payload['exp']:
+                if now > payload["exp"]:
                     raise jwt.ExpiredSignatureError("Token has expired")
 
             return payload
@@ -95,8 +97,8 @@ class JWTManager:
         payload = self.decode_token(token)
 
         # Remove expiry claims (will be set again)
-        payload.pop('exp', None)
-        payload.pop('iat', None)
+        payload.pop("exp", None)
+        payload.pop("iat", None)
 
         # Create new token
         return self.create_token(payload)
@@ -130,15 +132,15 @@ class JWTManager:
         payload = self.decode_token(token)
 
         now = int(time.time())
-        expired = now > payload.get('exp', 0)
+        expired = now > payload.get("exp", 0)
 
         return {
-            'valid': not expired,
-            'expired': expired,
-            'expires_at': datetime.fromtimestamp(payload.get('exp', 0)),
-            'issued_at': datetime.fromtimestamp(payload.get('iat', 0)),
-            'issuer': payload.get('iss'),
-            'subject': payload.get('sub'),
-            'user_id': payload.get('user_id'),
-            'roles': payload.get('roles', [])
+            "valid": not expired,
+            "expired": expired,
+            "expires_at": datetime.fromtimestamp(payload.get("exp", 0)),
+            "issued_at": datetime.fromtimestamp(payload.get("iat", 0)),
+            "issuer": payload.get("iss"),
+            "subject": payload.get("sub"),
+            "user_id": payload.get("user_id"),
+            "roles": payload.get("roles", []),
         }

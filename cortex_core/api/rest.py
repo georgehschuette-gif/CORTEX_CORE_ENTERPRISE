@@ -3,17 +3,18 @@ REST API for Cortex Core.
 """
 
 import logging
-from typing import Dict, Any, Optional
-from fastapi import FastAPI, HTTPException, Depends, Request
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from pydantic import BaseModel, Field
-import uvicorn
+from typing import Any, Dict, Optional
 
-from cortex_core.exceptions import CortexError, SecurityError, ValidationError
+import uvicorn
+from fastapi import Depends, FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from pydantic import BaseModel, Field
+
 from cortex_core.core.factory import create_cortex
-from cortex_core.security.auth.jwt_manager import JWTManager
+from cortex_core.exceptions import CortexError, SecurityError, ValidationError
 from cortex_core.monitoring.metrics import MetricsCollector
+from cortex_core.security.auth.jwt_manager import JWTManager
 
 logger = logging.getLogger(__name__)
 
@@ -22,14 +23,15 @@ logger = logging.getLogger(__name__)
 
 class ProcessRequest(BaseModel):
     """Request model for intelligence processing."""
-    data: Dict[str, Any] = Field(...,
-                                 description="Intelligence data to process")
+
+    data: Dict[str, Any] = Field(..., description="Intelligence data to process")
     validate: bool = Field(True, description="Whether to validate input")
     priority: str = Field("normal", description="Processing priority")
 
 
 class ProcessResponse(BaseModel):
     """Response model for processing results."""
+
     success: bool
     decision: Optional[str] = None
     analysis: Optional[Dict[str, Any]] = None
@@ -41,6 +43,7 @@ class ProcessResponse(BaseModel):
 
 class HealthResponse(BaseModel):
     """Health check response."""
+
     status: str
     version: str
     timestamp: str
@@ -52,7 +55,7 @@ app = FastAPI(
     description="Advanced Neural-Symbolic AI System with Security & Autonomy",
     version="3.0.0",
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
 )
 
 # Middleware
@@ -82,7 +85,7 @@ def get_cortex_core():
 
 
 async def get_current_user(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
 ) -> Optional[Dict[str, Any]]:
     """Get current authenticated user."""
     if not credentials:
@@ -92,9 +95,8 @@ async def get_current_user(
         payload = jwt_manager.decode_token(credentials.credentials)
         return payload
     except Exception:
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid authentication token")
+        raise HTTPException(status_code=401, detail="Invalid authentication token")
+
 
 # Routes
 
@@ -109,7 +111,7 @@ async def health_check():
         return HealthResponse(
             status="healthy" if status["status"] == "operational" else "unhealthy",
             version=status["version"],
-            timestamp="2024-01-15T10:30:00Z"  # Would be dynamic in real implementation
+            timestamp="2024-01-15T10:30:00Z",  # Would be dynamic in real implementation
         )
     except Exception as e:
         logger.error(f"Health check failed: {e}")
@@ -118,8 +120,7 @@ async def health_check():
 
 @app.post("/process", response_model=ProcessResponse)
 async def process_intelligence(
-    request: ProcessRequest,
-    user: Optional[Dict[str, Any]] = Depends(get_current_user)
+    request: ProcessRequest, user: Optional[Dict[str, Any]] = Depends(get_current_user)
 ):
     """
     Process intelligence data.
@@ -131,25 +132,22 @@ async def process_intelligence(
         core = get_cortex_core()
 
         # Process the data
-        result = core.process(
-            data=request.data,
-            validate=request.validate
-        )
+        result = core.process(data=request.data, validate=request.validate)
 
         # Record metrics
         metrics.record_request(
             endpoint="/process",
             method="POST",
             status_code=200 if result["success"] else 500,
-            processing_time=result.get("processing_time", 0)
+            processing_time=result.get("processing_time", 0),
         )
 
         if result["success"]:
             return ProcessResponse(**result)
         else:
             raise HTTPException(
-                status_code=500, detail=result.get(
-                    "error", "Processing failed"))
+                status_code=500, detail=result.get("error", "Processing failed")
+            )
 
     except SecurityError as e:
         logger.warning(f"Security error: {e}")
@@ -166,8 +164,7 @@ async def process_intelligence(
 
 
 @app.get("/status")
-async def get_system_status(
-        user: Optional[Dict[str, Any]] = Depends(get_current_user)):
+async def get_system_status(user: Optional[Dict[str, Any]] = Depends(get_current_user)):
     """Get system status."""
     try:
         core = get_cortex_core()
@@ -176,7 +173,7 @@ async def get_system_status(
         return {
             "status": status,
             "metrics": metrics.get_summary(),
-            "timestamp": "2024-01-15T10:30:00Z"
+            "timestamp": "2024-01-15T10:30:00Z",
         }
 
     except Exception as e:
@@ -189,16 +186,17 @@ async def get_metrics():
     """Get system metrics (Prometheus format)."""
     return metrics.get_prometheus_metrics()
 
+
 # Startup and shutdown events
 
 
 @app.on_event("startup")
 async def startup_event():
     """Application startup."""
+    global cortex_core
     logger.info("Cortex Core API starting up...")
 
     # Initialize global Cortex Core instance
-    global cortex_core
     cortex_core = create_cortex()
 
     # Start metrics collection
@@ -213,7 +211,6 @@ async def shutdown_event():
     logger.info("Cortex Core API shutting down...")
 
     # Shutdown Cortex Core
-    global cortex_core
     if cortex_core:
         cortex_core.shutdown()
 
@@ -222,6 +219,7 @@ async def shutdown_event():
 
     logger.info("Cortex Core API shutdown complete")
 
+
 # Main entry point
 if __name__ == "__main__":
     uvicorn.run(
@@ -229,5 +227,5 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=8080,
         reload=True,
-        log_level="info"
+        log_level="info",
     )

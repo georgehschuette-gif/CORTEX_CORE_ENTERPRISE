@@ -12,12 +12,12 @@ __build_commit__ = "a1b2c3d4e5f6"
 
 # Feature flags
 FEATURES = {
-    'distributed': True,
-    'security': True,
-    'autonomy': True,
-    'monitoring': True,
-    'enterprise': True,
-    'production_ready': True
+    "distributed": True,
+    "security": True,
+    "autonomy": True,
+    "monitoring": True,
+    "enterprise": True,
+    "production_ready": True,
 }
 
 # API versions
@@ -29,12 +29,12 @@ COMPATIBLE_VERSIONS = ["v2", "v3"]
 def get_version():
     """Get complete version information."""
     return {
-        'version': __version__,
-        'version_info': __version_info__,
-        'build': __build__,
-        'build_date': __build_date__,
-        'build_commit': __build_commit__,
-        'features': FEATURES,
-        'api_version': API_VERSION,
-        'compatible_versions': COMPATIBLE_VERSIONS
+        "version": __version__,
+        "version_info": __version_info__,
+        "build": __build__,
+        "build_date": __build_date__,
+        "build_commit": __build_commit__,
+        "features": FEATURES,
+        "api_version": API_VERSION,
+        "compatible_versions": COMPATIBLE_VERSIONS,
     }

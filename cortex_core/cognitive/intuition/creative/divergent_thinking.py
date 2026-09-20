@@ -3,7 +3,7 @@ Divergent thinking for generating multiple perspectives.
 """
 
 import random
-from typing import Dict, Any, List
+from typing import Any, Dict, List
 
 
 class DivergentThinking:
@@ -19,11 +19,10 @@ class DivergentThinking:
             "neutral",
             "extreme",
             "minimalist",
-            "maximalist"
+            "maximalist",
         ]
 
-    def generate_perspectives(
-            self, problem: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def generate_perspectives(self, problem: Dict[str, Any]) -> List[Dict[str, Any]]:
         """
         Generate multiple perspectives on a problem.
 
@@ -42,7 +41,8 @@ class DivergentThinking:
         return perspectives
 
     def brainstorm_solutions(
-            self, problem: Dict[str, Any], num_solutions: int = 10) -> List[str]:
+        self, problem: Dict[str, Any], num_solutions: int = 10
+    ) -> List[str]:
         """
         Generate multiple solution ideas.
 
@@ -62,44 +62,45 @@ class DivergentThinking:
         return solutions
 
     def _apply_perspective_filter(
-            self, problem: Dict[str, Any], filter_type: str) -> Dict[str, Any]:
+        self, problem: Dict[str, Any], filter_type: str
+    ) -> Dict[str, Any]:
         """Apply a perspective filter to the problem."""
         filtered_problem = problem.copy()
 
         if filter_type == "optimistic":
-            filtered_problem['description'] = f"What are the best possible outcomes for: {
-                problem.get(
-                    'description',
-                    '')}"
-            filtered_problem['approach'] = "focus on opportunities and positive aspects"
+            filtered_problem["description"] = (
+                "What are the best possible outcomes for: "
+                + problem.get("description", "")
+            )
+            filtered_problem["approach"] = "focus on opportunities and positive aspects"
 
         elif filter_type == "pessimistic":
-            filtered_problem['description'] = f"What could go wrong with: {
+            filtered_problem["description"] = f"What could go wrong with: {
                 problem.get(
                     'description', '')}"
-            filtered_problem['approach'] = "identify risks and failure modes"
+            filtered_problem["approach"] = "identify risks and failure modes"
 
         elif filter_type == "extreme":
-            filtered_problem['description'] = f"Take {
+            filtered_problem["description"] = f"Take {
                 problem.get(
                     'description',
                     '')} to the extreme"
-            filtered_problem['approach'] = "exaggerate and amplify all aspects"
+            filtered_problem["approach"] = "exaggerate and amplify all aspects"
 
         elif filter_type == "minimalist":
-            filtered_problem['description'] = f"What's the simplest version of: {
+            filtered_problem["description"] = f"What's the simplest version of: {
                 problem.get(
                     'description',
                     '')}"
-            filtered_problem['approach'] = "remove complexity and focus on essentials"
+            filtered_problem["approach"] = "remove complexity and focus on essentials"
 
         else:
-            filtered_problem['approach'] = f"apply {filter_type} perspective"
+            filtered_problem["approach"] = f"apply {filter_type} perspective"
 
         return {
-            'filter': filter_type,
-            'problem': filtered_problem,
-            'generated_at': "2024-01-15T10:30:00Z"
+            "filter": filter_type,
+            "problem": filtered_problem,
+            "generated_at": "2024-01-15T10:30:00Z",
         }
 
     def _generate_random_solution(self, problem: Dict[str, Any]) -> str:
@@ -114,7 +115,7 @@ class DivergentThinking:
             "Change the timing of {concept1}",
             "Add a constraint to {concept1}",
             "Remove a constraint from {concept1}",
-            "Copy {concept1} from another domain"
+            "Copy {concept1} from another domain",
         ]
 
         # Extract concepts from problem
@@ -138,21 +139,14 @@ class DivergentThinking:
         """Extract key concepts from problem description."""
         concepts = []
 
-        description = problem.get('description', '')
+        description = problem.get("description", "")
         words = description.lower().split()
 
         # Simple concept extraction - nouns and important terms
-        important_words = [
-            'system',
-            'process',
-            'data',
-            'user',
-            'problem',
-            'solution']
+        important_words = ["system", "process", "data", "user", "problem", "solution"]
 
         for word in words:
-            if len(word) > 3 and word not in [
-                    'that', 'this', 'with', 'from', 'have']:
+            if len(word) > 3 and word not in ["that", "this", "with", "from", "have"]:
                 concepts.append(word)
 
         # Add important words if not present
@@ -160,4 +154,4 @@ class DivergentThinking:
             if word in description.lower():
                 concepts.append(word)
 
-        return list(set(concepts)) if concepts else ['general problem']
+        return list(set(concepts)) if concepts else ["general problem"]

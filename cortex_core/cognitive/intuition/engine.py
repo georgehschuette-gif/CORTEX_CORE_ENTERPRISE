@@ -4,8 +4,7 @@ Intuition Engine (Right Hemisphere).
 
 import logging
 import random
-from typing import Dict, Any, List
-import numpy as np
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +19,7 @@ class IntuitionEngine:
     def __init__(self, config: Dict[str, Any]):
         self.config = config
         self.patterns = {}
-        self.creativity_level = config.get('creativity_level', 0.7)
+        self.creativity_level = config.get("creativity_level", 0.7)
 
         logger.info("Intuition Engine initialized")
 
@@ -45,27 +44,21 @@ class IntuitionEngine:
             creative_insights = self._apply_creativity(insights)
 
             result = {
-                'patterns': patterns,
-                'insights': creative_insights,
-                'confidence': self._calculate_confidence(patterns),
-                'novelty_score': self._calculate_novelty(creative_insights),
-                'processing_type': 'intuitive'
+                "patterns": patterns,
+                "insights": creative_insights,
+                "confidence": self._calculate_confidence(patterns),
+                "novelty_score": self._calculate_novelty(creative_insights),
+                "processing_type": "intuitive",
             }
 
-            logger.debug(
-                f"Intuition processing completed: {
+            logger.debug(f"Intuition processing completed: {
                     len(patterns)} patterns found")
 
             return result
 
         except Exception as e:
             logger.error(f"Intuition processing failed: {e}")
-            return {
-                'patterns': [],
-                'insights': [],
-                'confidence': 0.0,
-                'error': str(e)
-            }
+            return {"patterns": [], "insights": [], "confidence": 0.0, "error": str(e)}
 
     def _extract_patterns(self, data: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Extract patterns from data."""
@@ -77,62 +70,61 @@ class IntuitionEngine:
                 if isinstance(value, (int, float)):
                     # Numerical pattern
                     pattern = {
-                        'type': 'numerical',
-                        'key': key,
-                        'value': value,
-                        'normalized': self._normalize_value(value)
+                        "type": "numerical",
+                        "key": key,
+                        "value": value,
+                        "normalized": self._normalize_value(value),
                     }
                     patterns.append(pattern)
                 elif isinstance(value, str):
                     # Textual pattern
                     pattern = {
-                        'type': 'textual',
-                        'key': key,
-                        'value': value,
-                        'length': len(value),
-                        'complexity': self._calculate_complexity(value)
+                        "type": "textual",
+                        "key": key,
+                        "value": value,
+                        "length": len(value),
+                        "complexity": self._calculate_complexity(value),
                     }
                     patterns.append(pattern)
                 elif isinstance(value, list):
                     # Sequential pattern
                     pattern = {
-                        'type': 'sequential',
-                        'key': key,
-                        'length': len(value),
-                        'diversity': len(set(value)) / max(len(value), 1)
+                        "type": "sequential",
+                        "key": key,
+                        "length": len(value),
+                        "diversity": len(set(value)) / max(len(value), 1),
                     }
                     patterns.append(pattern)
 
         return patterns
 
     def _generate_insights(
-            self, patterns: List[Dict[str, Any]], data: Dict[str, Any]) -> List[str]:
+        self, patterns: List[Dict[str, Any]], data: Dict[str, Any]
+    ) -> List[str]:
         """Generate insights from patterns."""
         insights = []
 
         for pattern in patterns:
-            if pattern['type'] == 'numerical':
+            if pattern["type"] == "numerical":
                 insight = self._numerical_insight(pattern)
                 if insight:
                     insights.append(insight)
-            elif pattern['type'] == 'textual':
+            elif pattern["type"] == "textual":
                 insight = self._textual_insight(pattern)
                 if insight:
                     insights.append(insight)
-            elif pattern['type'] == 'sequential':
+            elif pattern["type"] == "sequential":
                 insight = self._sequential_insight(pattern)
                 if insight:
                     insights.append(insight)
 
         # Add contextual insights
-        if 'type' in data:
-            insights.append(
-                f"Data type suggests: {
+        if "type" in data:
+            insights.append(f"Data type suggests: {
                     data['type']} analysis needed")
 
-        if 'priority' in data:
-            insights.append(
-                f"Priority level indicates: {
+        if "priority" in data:
+            insights.append(f"Priority level indicates: {
                     data['priority']} attention required")
 
         return insights
@@ -159,8 +151,8 @@ class IntuitionEngine:
 
     def _numerical_insight(self, pattern: Dict[str, Any]) -> str:
         """Generate insight from numerical pattern."""
-        value = pattern['value']
-        normalized = pattern['normalized']
+        value = pattern["value"]
+        normalized = pattern["normalized"]
 
         if normalized > 0.8:
             return f"High value detected: {value} (significance level: high)"
@@ -171,7 +163,7 @@ class IntuitionEngine:
 
     def _textual_insight(self, pattern: Dict[str, Any]) -> str:
         """Generate insight from textual pattern."""
-        complexity = pattern['complexity']
+        complexity = pattern["complexity"]
 
         if complexity > 0.7:
             return "Complex textual content detected"
@@ -182,7 +174,7 @@ class IntuitionEngine:
 
     def _sequential_insight(self, pattern: Dict[str, Any]) -> str:
         """Generate insight from sequential pattern."""
-        diversity = pattern['diversity']
+        diversity = pattern["diversity"]
 
         if diversity > 0.8:
             return "Highly diverse sequence detected"
@@ -220,13 +212,9 @@ class IntuitionEngine:
         base_confidence = min(len(patterns) / 10, 1.0)
 
         # Adjust based on pattern types
-        type_weights = {
-            'numerical': 1.0,
-            'textual': 0.8,
-            'sequential': 0.9
-        }
+        type_weights = {"numerical": 1.0, "textual": 0.8, "sequential": 0.9}
 
-        weighted_sum = sum(type_weights.get(p['type'], 0.5) for p in patterns)
+        weighted_sum = sum(type_weights.get(p["type"], 0.5) for p in patterns)
         type_confidence = weighted_sum / max(len(patterns), 1)
 
         return (base_confidence + type_confidence) / 2

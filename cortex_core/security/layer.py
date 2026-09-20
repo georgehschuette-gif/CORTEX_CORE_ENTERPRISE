@@ -2,10 +2,10 @@
 Security layer for Cortex Core.
 """
 
-import logging
 import hashlib
 import json
-from typing import Dict, Any, Optional
+import logging
+from typing import Any, Dict, Optional
 
 from cortex_core.exceptions import SecurityError, ValidationError
 
@@ -17,23 +17,22 @@ class SecurityLayer:
     Comprehensive security layer for data protection and validation.
     """
 
-    def __init__(
-            self, master_key: Optional[str] = None, config: Dict[str, Any] = None):
+    def __init__(self, master_key: Optional[str] = None, config: Dict[str, Any] = None):
         self.config = config or {}
         self.master_key = master_key or self._generate_key()
 
         # Security policies
         self.policies = {
-            'max_input_size': 10 * 1024 * 1024,  # 10MB
-            'allowed_schemas': ['http', 'https', 'data'],
-            'max_depth': 10,
-            'max_array_length': 1000,
-            'max_string_length': 10000
+            "max_input_size": 10 * 1024 * 1024,  # 10MB
+            "allowed_schemas": ["http", "https", "data"],
+            "max_depth": 10,
+            "max_array_length": 1000,
+            "max_string_length": 10000,
         }
 
         # Update from config
-        if 'policies' in self.config:
-            self.policies.update(self.config['policies'])
+        if "policies" in self.config:
+            self.policies.update(self.config["policies"])
 
         logger.info("Security layer initialized")
 
@@ -54,7 +53,7 @@ class SecurityLayer:
 
         # 1. Check size
         data_size = len(json.dumps(data).encode())
-        if data_size > self.policies['max_input_size']:
+        if data_size > self.policies["max_input_size"]:
             errors.append(f"Data too large: {data_size} bytes")
 
         # 2. Check structure
@@ -68,20 +67,13 @@ class SecurityLayer:
         errors.extend(content_errors)
 
         if errors:
-            return {
-                'valid': False,
-                'errors': errors,
-                'sanitized': self._sanitize(data)
-            }
+            return {"valid": False, "errors": errors, "sanitized": self._sanitize(data)}
 
-        return {
-            'valid': True,
-            'sanitized': data
-        }
+        return {"valid": True, "sanitized": data}
 
     def _validate_structure(self, data: Any, depth: int):
         """Validate data structure."""
-        if depth > self.policies['max_depth']:
+        if depth > self.policies["max_depth"]:
             raise ValidationError("Data structure too deep")
 
         if isinstance(data, dict):
@@ -96,16 +88,15 @@ class SecurityLayer:
                 self._validate_structure(value, depth + 1)
 
         elif isinstance(data, list):
-            if len(data) > self.policies['max_array_length']:
+            if len(data) > self.policies["max_array_length"]:
                 raise ValidationError(f"Array too long: {len(data)} items")
 
             for item in data:
                 self._validate_structure(item, depth + 1)
 
         elif isinstance(data, str):
-            if len(data) > self.policies['max_string_length']:
-                raise ValidationError(
-                    f"String too long: {
+            if len(data) > self.policies["max_string_length"]:
+                raise ValidationError(f"String too long: {
                         len(data)} characters")
 
     def _validate_content(self, data: Dict[str, Any]) -> list:
@@ -114,18 +105,17 @@ class SecurityLayer:
 
         # Check for malicious patterns
         malicious_patterns = [
-            ('<script>', 'Potential XSS attack'),
-            ('SELECT.*FROM', 'Potential SQL injection'),
-            ('../', 'Potential path traversal'),
-            ('eval(', 'Potential code injection')
+            ("<script>", "Potential XSS attack"),
+            ("SELECT.*FROM", "Potential SQL injection"),
+            ("../", "Potential path traversal"),
+            ("eval(", "Potential code injection"),
         ]
 
         def check_value(value):
             if isinstance(value, str):
                 for pattern, message in malicious_patterns:
                     if pattern.lower() in value.lower():
-                        errors.append(
-                            f"{message} detected in: {value[:50]}...")
+                        errors.append(f"{message} detected in: {value[:50]}...")
 
             elif isinstance(value, (dict, list)):
                 if isinstance(value, dict):
@@ -145,17 +135,22 @@ class SecurityLayer:
         for key, value in data.items():
             if isinstance(value, str):
                 # Basic HTML sanitization
-                sanitized_value = value.replace(
-                    '<', '&lt;').replace('>', '&gt;')
-                sanitized[key] = sanitized_value[:self.policies['max_string_length']]
+                sanitized_value = value.replace("<", "&lt;").replace(">", "&gt;")
+                sanitized[key] = sanitized_value[: self.policies["max_string_length"]]
             elif isinstance(value, dict):
                 sanitized[key] = self._sanitize(value)
             elif isinstance(value, list):
                 sanitized[key] = [
-                    self._sanitize(item) if isinstance(item, dict) else
-                    (item[:self.policies['max_string_length']]
-                     if isinstance(item, str) else item)
-                    for item in value[:self.policies['max_array_length']]
+                    (
+                        self._sanitize(item)
+                        if isinstance(item, dict)
+                        else (
+                            item[: self.policies["max_string_length"]]
+                            if isinstance(item, str)
+                            else item
+                        )
+                    )
+                    for item in value[: self.policies["max_array_length"]]
                 ]
             else:
                 sanitized[key] = value
@@ -169,14 +164,13 @@ class SecurityLayer:
 
         # Simple encryption - in production use proper cryptography
         data_str = json.dumps(data)
-        encrypted = hashlib.sha256(
-            (data_str + self.master_key).encode()).hexdigest()
+        encrypted = hashlib.sha256((data_str + self.master_key).encode()).hexdigest()
 
         return f"enc:{encrypted}"
 
     def decrypt(self, encrypted_data: str) -> Any:
         """Decrypt data."""
-        if not encrypted_data.startswith('enc:'):
+        if not encrypted_data.startswith("enc:"):
             return encrypted_data
 
         # Simple decryption - in production use proper cryptography
@@ -196,6 +190,7 @@ class SecurityLayer:
     def _generate_key(self) -> str:
         """Generate secure key."""
         import secrets
+
         return secrets.token_urlsafe(32)
 
     def is_healthy(self) -> bool:

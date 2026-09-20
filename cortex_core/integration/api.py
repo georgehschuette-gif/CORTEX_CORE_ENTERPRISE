@@ -6,13 +6,14 @@ making Cortex Core Enterprise universally compatible with global infrastructure.
 """
 
 import time
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
+
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
-from cortex_core.monitoring.health import HealthMonitor
 from cortex_core.core.cortex_core import CortexCore
-from cortex_core.integration.universal import integration_manager, AlertSeverity
+from cortex_core.integration.universal import AlertSeverity, integration_manager
+from cortex_core.monitoring.health import HealthMonitor
 
 
 # Pydantic models for API responses
@@ -67,19 +68,26 @@ class EnterpriseAPI:
                 status = self.health_monitor.get_status()
                 return HealthStatus(**status)
             except Exception as e:
-                raise HTTPException(status_code=500, detail=f"Health check failed: {str(e)}")
+                raise HTTPException(
+                    status_code=500, detail=f"Health check failed: {str(e)}"
+                )
 
         @self.router.get("/health/simple")
         async def get_simple_health():
             """Simple health check for load balancers and basic monitoring."""
             try:
                 status = self.health_monitor.is_healthy()
-                return {"status": "healthy" if status else "unhealthy", "timestamp": time.time()}
+                return {
+                    "status": "healthy" if status else "unhealthy",
+                    "timestamp": time.time(),
+                }
             except Exception:
                 return {"status": "error", "timestamp": time.time()}
 
         @self.router.get("/metrics", response_model=MetricsResponse)
-        async def get_metrics(format: str = Query("json", description="Metrics format")):
+        async def get_metrics(
+            format: str = Query("json", description="Metrics format")
+        ):
             """Universal metrics endpoint supporting multiple formats."""
             try:
                 if format.lower() == "prometheus":
@@ -87,16 +95,25 @@ class EnterpriseAPI:
                     return MetricsResponse(
                         metrics={"prometheus": prometheus_metrics},
                         timestamp=time.time(),
-                        format="prometheus"
+                        format="prometheus",
                     )
                 elif format.lower() == "json":
                     # Get core metrics
                     core_metrics = {
                         "processing_count": len(self.cortex_core.metrics),
-                        "total_duration": sum(m.get('duration', 0) for m in self.cortex_core.metrics[-100:]),
-                        "success_rate": sum(1 for m in self.cortex_core.metrics[-100:] if m.get('success', False)) / max(len(self.cortex_core.metrics[-100:]), 1),
+                        "total_duration": sum(
+                            m.get("duration", 0)
+                            for m in self.cortex_core.metrics[-100:]
+                        ),
+                        "success_rate": sum(
+                            1
+                            for m in self.cortex_core.metrics[-100:]
+                            if m.get("success", False)
+                        )
+                        / max(len(self.cortex_core.metrics[-100:]), 1),
                         "memory_usage": len(self.cortex_core.metrics),  # Simplified
-                        "uptime": time.time() - getattr(self.cortex_core, 'start_time', time.time())
+                        "uptime": time.time()
+                        - getattr(self.cortex_core, "start_time", time.time()),
                     }
 
                     # Add integration metrics
@@ -104,18 +121,27 @@ class EnterpriseAPI:
                         "metrics_buffer_size": len(integration_manager.metric_buffer),
                         "alerts_buffer_size": len(integration_manager.alert_buffer),
                         "active_exporters": len(integration_manager.metrics_exporters),
-                        "active_dispatchers": len(integration_manager.alert_dispatchers)
+                        "active_dispatchers": len(
+                            integration_manager.alert_dispatchers
+                        ),
                     }
 
                     return MetricsResponse(
-                        metrics={"core": core_metrics, "integration": integration_metrics},
+                        metrics={
+                            "core": core_metrics,
+                            "integration": integration_metrics,
+                        },
                         timestamp=time.time(),
-                        format="json"
+                        format="json",
                     )
                 else:
-                    raise HTTPException(status_code=400, detail=f"Unsupported format: {format}")
+                    raise HTTPException(
+                        status_code=400, detail=f"Unsupported format: {format}"
+                    )
             except Exception as e:
-                raise HTTPException(status_code=500, detail=f"Metrics retrieval failed: {str(e)}")
+                raise HTTPException(
+                    status_code=500, detail=f"Metrics retrieval failed: {str(e)}"
+                )
 
         @self.router.post("/alerts/trigger")
         async def trigger_alert(alert: AlertTrigger):
@@ -126,7 +152,7 @@ class EnterpriseAPI:
                     "error": AlertSeverity.ERROR,
                     "warning": AlertSeverity.WARNING,
                     "info": AlertSeverity.INFO,
-                    "debug": AlertSeverity.DEBUG
+                    "debug": AlertSeverity.DEBUG,
                 }
 
                 severity = severity_map.get(alert.severity.lower(), AlertSeverity.INFO)
@@ -137,7 +163,7 @@ class EnterpriseAPI:
                     severity=severity,
                     source=alert.source,
                     tags=alert.tags,
-                    runbook_url=alert.runbook_url
+                    runbook_url=alert.runbook_url,
                 )
 
                 # Immediately dispatch alerts
@@ -147,32 +173,45 @@ class EnterpriseAPI:
                 return {
                     "status": "alert_triggered" if success else "alert_queued",
                     "dispatch_results": results,
-                    "timestamp": time.time()
+                    "timestamp": time.time(),
                 }
             except Exception as e:
-                raise HTTPException(status_code=500, detail=f"Alert trigger failed: {str(e)}")
+                raise HTTPException(
+                    status_code=500, detail=f"Alert trigger failed: {str(e)}"
+                )
 
         @self.router.get("/integration/status", response_model=IntegrationStatus)
         async def get_integration_status():
             """Get status of all integration components."""
             try:
-                # Check exporter health (simplified - in real implementation would test connections)
-                exporter_status = {name: True for name in integration_manager.metrics_exporters.keys()}
+                # Check exporter health. Simplified: does not open
+                # connections.
+                exporter_status = {
+                    name: True for name in integration_manager.metrics_exporters.keys()
+                }
 
                 # Check dispatcher health
-                dispatcher_status = {name: True for name in integration_manager.alert_dispatchers.keys()}
+                dispatcher_status = {
+                    name: True for name in integration_manager.alert_dispatchers.keys()
+                }
 
                 return IntegrationStatus(
                     metrics_exporters=exporter_status,
                     alert_dispatchers=dispatcher_status,
                     buffer_sizes={
                         "metrics": len(integration_manager.metric_buffer),
-                        "alerts": len(integration_manager.alert_buffer)
+                        "alerts": len(integration_manager.alert_buffer),
                     },
-                    last_export=integration_manager.last_export if hasattr(integration_manager, 'last_export') else None
+                    last_export=(
+                        integration_manager.last_export
+                        if hasattr(integration_manager, "last_export")
+                        else None
+                    ),
                 )
             except Exception as e:
-                raise HTTPException(status_code=500, detail=f"Integration status check failed: {str(e)}")
+                raise HTTPException(
+                    status_code=500, detail=f"Integration status check failed: {str(e)}"
+                )
 
         @self.router.post("/integration/export")
         async def trigger_export():
@@ -184,14 +223,24 @@ class EnterpriseAPI:
                 integration_manager.last_export = time.time()
 
                 return {
-                    "metrics_exported": len(integration_manager.metric_buffer) if hasattr(integration_manager, 'metric_buffer') else 0,
-                    "alerts_dispatched": len(integration_manager.alert_buffer) if hasattr(integration_manager, 'alert_buffer') else 0,
+                    "metrics_exported": (
+                        len(integration_manager.metric_buffer)
+                        if hasattr(integration_manager, "metric_buffer")
+                        else 0
+                    ),
+                    "alerts_dispatched": (
+                        len(integration_manager.alert_buffer)
+                        if hasattr(integration_manager, "alert_buffer")
+                        else 0
+                    ),
                     "metrics_results": metrics_results,
                     "alerts_results": alerts_results,
-                    "timestamp": time.time()
+                    "timestamp": time.time(),
                 }
             except Exception as e:
-                raise HTTPException(status_code=500, detail=f"Export trigger failed: {str(e)}")
+                raise HTTPException(
+                    status_code=500, detail=f"Export trigger failed: {str(e)}"
+                )
 
         @self.router.get("/info")
         async def get_system_info():
@@ -199,19 +248,28 @@ class EnterpriseAPI:
             try:
                 info = {
                     "system": "Cortex Core Enterprise",
-                    "version": getattr(self.cortex_core, 'version', '1.0.0'),
+                    "version": getattr(self.cortex_core, "version", "1.0.0"),
                     "status": "operational",
                     "capabilities": [
                         "universal_metrics_export",
                         "universal_alert_dispatch",
                         "cognitive_processing",
                         "distributed_computing",
-                        "enterprise_integration"
+                        "enterprise_integration",
                     ],
                     "supported_platforms": [
-                        "prometheus", "grafana", "datadog", "pagerduty",
-                        "slack", "teams", "cloudwatch", "graphite",
-                        "elasticsearch", "splunk", "new_relic", "app_dynamics"
+                        "prometheus",
+                        "grafana",
+                        "datadog",
+                        "pagerduty",
+                        "slack",
+                        "teams",
+                        "cloudwatch",
+                        "graphite",
+                        "elasticsearch",
+                        "splunk",
+                        "new_relic",
+                        "app_dynamics",
                     ],
                     "api_endpoints": [
                         "/api/v1/health",
@@ -220,42 +278,61 @@ class EnterpriseAPI:
                         "/api/v1/alerts/trigger",
                         "/api/v1/integration/status",
                         "/api/v1/integration/export",
-                        "/api/v1/info"
+                        "/api/v1/info",
                     ],
                     "timestamp": time.time(),
-                    "uptime": time.time() - getattr(self.cortex_core, 'start_time', time.time())
+                    "uptime": time.time()
+                    - getattr(self.cortex_core, "start_time", time.time()),
                 }
                 return info
             except Exception as e:
-                raise HTTPException(status_code=500, detail=f"System info retrieval failed: {str(e)}")
+                raise HTTPException(
+                    status_code=500, detail=f"System info retrieval failed: {str(e)}"
+                )
 
         @self.router.get("/platforms")
         async def get_supported_platforms():
             """List all supported enterprise platforms and integration methods."""
             platforms = {
                 "monitoring": [
-                    {"name": "Prometheus", "format": "prometheus", "endpoint": "/metrics"},
+                    {
+                        "name": "Prometheus",
+                        "format": "prometheus",
+                        "endpoint": "/metrics",
+                    },
                     {"name": "DataDog", "format": "dogstatsd", "port": 8125},
                     {"name": "StatsD", "format": "statsd", "port": 8125},
                     {"name": "CloudWatch", "format": "cloudwatch", "via": "boto3"},
-                    {"name": "Graphite", "format": "graphite", "port": 2003}
+                    {"name": "Graphite", "format": "graphite", "port": 2003},
                 ],
                 "alerting": [
                     {"name": "PagerDuty", "format": "pagerduty", "method": "webhook"},
                     {"name": "Slack", "format": "slack", "method": "webhook"},
                     {"name": "Microsoft Teams", "format": "teams", "method": "webhook"},
-                    {"name": "Generic Webhook", "format": "generic", "method": "configurable"}
+                    {
+                        "name": "Generic Webhook",
+                        "format": "generic",
+                        "method": "configurable",
+                    },
                 ],
                 "logging": [
                     {"name": "ELK Stack", "format": "json", "method": "structured"},
-                    {"name": "Splunk", "format": "json", "method": "http_event_collector"},
+                    {
+                        "name": "Splunk",
+                        "format": "json",
+                        "method": "http_event_collector",
+                    },
                     {"name": "Graylog", "format": "gelf", "method": "udp/tcp"},
-                    {"name": "Fluentd", "format": "json", "method": "forward"}
+                    {"name": "Fluentd", "format": "json", "method": "forward"},
                 ],
                 "api_compatibility": [
-                    {"name": "RESTful APIs", "version": "v1", "authentication": "configurable"},
+                    {
+                        "name": "RESTful APIs",
+                        "version": "v1",
+                        "authentication": "configurable",
+                    },
                     {"name": "GraphQL", "status": "planned", "version": "future"},
-                    {"name": "gRPC", "status": "planned", "version": "future"}
-                ]
+                    {"name": "gRPC", "status": "planned", "version": "future"},
+                ],
             }
             return platforms

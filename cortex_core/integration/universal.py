@@ -6,22 +6,27 @@ Cortex Core Enterprise to ANY enterprise monitoring platform in the world.
 No longer limited to specific vendors - this system adapts to any infrastructure.
 """
 
-import json
 import logging
 import threading
 import time
 from abc import ABC, abstractmethod
-from typing import Dict, Any, List, Optional, Callable
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any, Dict, List, Optional
 
 import requests
-import structlog
-from prometheus_client import Gauge, Counter, Histogram, generate_latest, CollectorRegistry
+from prometheus_client import (
+    CollectorRegistry,
+    Counter,
+    Gauge,
+    Histogram,
+    generate_latest,
+)
 
 
 class MetricFormat(Enum):
     """Supported metric export formats."""
+
     PROMETHEUS = "prometheus"
     STATSD = "statsd"
     DOGSTATSD = "dogstatsd"
@@ -33,6 +38,7 @@ class MetricFormat(Enum):
 
 class AlertFormat(Enum):
     """Supported alert webhook formats."""
+
     PAGERDUTY = "pagerduty"
     SLACK = "slack"
     TEAMS = "teams"
@@ -44,6 +50,7 @@ class AlertFormat(Enum):
 
 class AlertSeverity(Enum):
     """Universal alert severity levels."""
+
     CRITICAL = "critical"
     ERROR = "error"
     WARNING = "warning"
@@ -54,6 +61,7 @@ class AlertSeverity(Enum):
 @dataclass
 class UniversalMetric:
     """Universal metric data structure."""
+
     name: str
     value: float
     timestamp: float
@@ -64,6 +72,7 @@ class UniversalMetric:
 @dataclass
 class UniversalAlert:
     """Universal alert data structure."""
+
     title: str
     description: str
     severity: AlertSeverity
@@ -129,7 +138,7 @@ class PrometheusExporter(MetricsExporter):
                         metric.name,
                         f"Cortex Core {metric.name}",
                         labelnames=list(metric.tags.keys()),
-                        registry=self.registry
+                        registry=self.registry,
                     )
                 if metric.tags:
                     self.gauges[metric.name].labels(**metric.tags).set(metric.value)
@@ -141,7 +150,7 @@ class PrometheusExporter(MetricsExporter):
                         metric.name,
                         f"Cortex Core {metric.name}",
                         labelnames=list(metric.tags.keys()),
-                        registry=self.registry
+                        registry=self.registry,
                     )
                 if metric.tags:
                     self.counters[metric.name].labels(**metric.tags).inc(metric.value)
@@ -161,7 +170,7 @@ class PrometheusExporter(MetricsExporter):
 
     def get_metrics_text(self) -> str:
         """Get metrics in Prometheus text format."""
-        return generate_latest(self.registry).decode('utf-8')
+        return generate_latest(self.registry).decode("utf-8")
 
     def get_format(self) -> MetricFormat:
         return MetricFormat.PROMETHEUS
@@ -178,6 +187,7 @@ class StatsDExporter(MetricsExporter):
     def _get_socket(self):
         if self.socket is None:
             import socket
+
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         return self.socket
 
@@ -189,10 +199,7 @@ class StatsDExporter(MetricsExporter):
             else:
                 metric_line = f"{metric.name}:{metric.value}|g"
 
-            self._get_socket().sendto(
-                metric_line.encode(),
-                (self.host, self.port)
-            )
+            self._get_socket().sendto(metric_line.encode(), (self.host, self.port))
             return True
         except Exception as e:
             logging.error(f"Failed to export metric to StatsD: {e}")
@@ -217,10 +224,7 @@ class DogStatsDExporter(StatsDExporter):
             tags_str = "|".join(f"#{k}:{v}" for k, v in metric.tags.items())
             metric_line = f"{metric.name}:{metric.value}|g|{tags_str}"
 
-            self._get_socket().sendto(
-                metric_line.encode(),
-                (self.host, self.port)
-            )
+            self._get_socket().sendto(metric_line.encode(), (self.host, self.port))
             return True
         except Exception as e:
             logging.error(f"Failed to export metric to DogStatsD: {e}")
@@ -233,7 +237,9 @@ class DogStatsDExporter(StatsDExporter):
 class PagerDutyDispatcher(AlertDispatcher):
     """PagerDuty alert dispatcher."""
 
-    def __init__(self, routing_key: str, api_url: str = "https://events.pagerduty.com/v2/enqueue"):
+    def __init__(
+        self, routing_key: str, api_url: str = "https://events.pagerduty.com/v2/enqueue"
+    ):
         self.routing_key = routing_key
         self.api_url = api_url
 
@@ -243,13 +249,14 @@ class PagerDutyDispatcher(AlertDispatcher):
                 AlertSeverity.CRITICAL: "critical",
                 AlertSeverity.ERROR: "error",
                 AlertSeverity.WARNING: "warning",
-                AlertSeverity.INFO: "info"
+                AlertSeverity.INFO: "info",
             }
 
             payload = {
                 "routing_key": self.routing_key,
                 "event_action": "trigger",
-                "dedup_key": alert.alert_id or f"cortex-{alert.title}-{int(alert.timestamp)}",
+                "dedup_key": alert.alert_id
+                or f"cortex-{alert.title}-{int(alert.timestamp)}",
                 "payload": {
                     "summary": alert.title,
                     "source": alert.source,
@@ -261,9 +268,9 @@ class PagerDutyDispatcher(AlertDispatcher):
                     "custom_details": {
                         "description": alert.description,
                         "tags": alert.tags,
-                        "runbook_url": alert.runbook_url
-                    }
-                }
+                        "runbook_url": alert.runbook_url,
+                    },
+                },
             }
 
             response = requests.post(self.api_url, json=payload, timeout=10)
@@ -295,21 +302,33 @@ class SlackDispatcher(AlertDispatcher):
                 AlertSeverity.CRITICAL: "danger",
                 AlertSeverity.ERROR: "danger",
                 AlertSeverity.WARNING: "warning",
-                AlertSeverity.INFO: "good"
+                AlertSeverity.INFO: "good",
             }
 
             payload = {
-                "attachments": [{
-                    "color": color_map.get(alert.severity, "good"),
-                    "title": alert.title,
-                    "text": alert.description,
-                    "fields": [
-                        {"title": "Severity", "value": alert.severity.value, "short": True},
-                        {"title": "Source", "value": alert.source, "short": True},
-                        {"title": "Time", "value": time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(alert.timestamp)), "short": True}
-                    ],
-                    "footer": "Cortex Core Enterprise"
-                }]
+                "attachments": [
+                    {
+                        "color": color_map.get(alert.severity, "good"),
+                        "title": alert.title,
+                        "text": alert.description,
+                        "fields": [
+                            {
+                                "title": "Severity",
+                                "value": alert.severity.value,
+                                "short": True,
+                            },
+                            {"title": "Source", "value": alert.source, "short": True},
+                            {
+                                "title": "Time",
+                                "value": time.strftime(
+                                    "%Y-%m-%d %H:%M:%S", time.localtime(alert.timestamp)
+                                ),
+                                "short": True,
+                            },
+                        ],
+                        "footer": "Cortex Core Enterprise",
+                    }
+                ]
             }
 
             response = requests.post(self.webhook_url, json=payload, timeout=10)
@@ -332,8 +351,12 @@ class SlackDispatcher(AlertDispatcher):
 class GenericWebhookDispatcher(AlertDispatcher):
     """Generic webhook alert dispatcher for any platform."""
 
-    def __init__(self, webhook_url: str, headers: Optional[Dict[str, str]] = None,
-                 template: Optional[Dict[str, Any]] = None):
+    def __init__(
+        self,
+        webhook_url: str,
+        headers: Optional[Dict[str, str]] = None,
+        template: Optional[Dict[str, Any]] = None,
+    ):
         self.webhook_url = webhook_url
         self.headers = headers or {"Content-Type": "application/json"}
         self.template = template or {}
@@ -348,17 +371,14 @@ class GenericWebhookDispatcher(AlertDispatcher):
                 "timestamp": alert.timestamp,
                 "tags": alert.tags,
                 "alert_id": alert.alert_id,
-                "runbook_url": alert.runbook_url
+                "runbook_url": alert.runbook_url,
             }
 
             # Merge with custom template
             payload.update(self.template)
 
             response = requests.post(
-                self.webhook_url,
-                json=payload,
-                headers=self.headers,
-                timeout=10
+                self.webhook_url, json=payload, headers=self.headers, timeout=10
             )
             return response.status_code < 300
         except Exception as e:
@@ -405,30 +425,46 @@ class UniversalIntegrationManager:
     def register_metrics_exporter(self, name: str, exporter: MetricsExporter):
         """Register a metrics exporter."""
         self.metrics_exporters[name] = exporter
-        logging.info(f"Registered metrics exporter: {name} ({exporter.get_format().value})")
+        logging.info(
+            f"Registered metrics exporter: {name} ({exporter.get_format().value})"
+        )
 
     def register_alert_dispatcher(self, name: str, dispatcher: AlertDispatcher):
         """Register an alert dispatcher."""
         self.alert_dispatchers[name] = dispatcher
-        logging.info(f"Registered alert dispatcher: {name} ({dispatcher.get_format().value})")
+        logging.info(
+            f"Registered alert dispatcher: {name} ({dispatcher.get_format().value})"
+        )
 
-    def record_metric(self, name: str, value: float, tags: Optional[Dict[str, str]] = None,
-                     metric_type: str = "gauge"):
+    def record_metric(
+        self,
+        name: str,
+        value: float,
+        tags: Optional[Dict[str, str]] = None,
+        metric_type: str = "gauge",
+    ):
         """Record a metric for export."""
         metric = UniversalMetric(
             name=name,
             value=value,
             timestamp=time.time(),
             tags=tags or {},
-            metric_type=metric_type
+            metric_type=metric_type,
         )
 
         with self.buffer_lock:
             self.metric_buffer.append(metric)
 
-    def record_alert(self, title: str, description: str, severity: AlertSeverity,
-                    source: str = "cortex-core", tags: Optional[Dict[str, str]] = None,
-                    runbook_url: Optional[str] = None, alert_id: Optional[str] = None):
+    def record_alert(
+        self,
+        title: str,
+        description: str,
+        severity: AlertSeverity,
+        source: str = "cortex-core",
+        tags: Optional[Dict[str, str]] = None,
+        runbook_url: Optional[str] = None,
+        alert_id: Optional[str] = None,
+    ):
         """Record an alert for dispatch."""
         alert = UniversalAlert(
             title=title,
@@ -438,20 +474,25 @@ class UniversalIntegrationManager:
             timestamp=time.time(),
             tags=tags or {},
             runbook_url=runbook_url,
-            alert_id=alert_id
+            alert_id=alert_id,
         )
 
         with self.buffer_lock:
             self.alert_buffer.append(alert)
 
-    def export_metrics(self, exporter_names: Optional[List[str]] = None) -> Dict[str, bool]:
+    def export_metrics(
+        self, exporter_names: Optional[List[str]] = None
+    ) -> Dict[str, bool]:
         """Export metrics to specified exporters (or all if None)."""
         results = {}
 
         exporters = self.metrics_exporters
         if exporter_names:
-            exporters = {name: self.metrics_exporters[name] for name in exporter_names
-                        if name in self.metrics_exporters}
+            exporters = {
+                name: self.metrics_exporters[name]
+                for name in exporter_names
+                if name in self.metrics_exporters
+            }
 
         with self.buffer_lock:
             metrics_to_export = self.metric_buffer.copy()
@@ -467,14 +508,19 @@ class UniversalIntegrationManager:
 
         return results
 
-    def dispatch_alerts(self, dispatcher_names: Optional[List[str]] = None) -> Dict[str, bool]:
+    def dispatch_alerts(
+        self, dispatcher_names: Optional[List[str]] = None
+    ) -> Dict[str, bool]:
         """Dispatch alerts to specified dispatchers (or all if None)."""
         results = {}
 
         dispatchers = self.alert_dispatchers
         if dispatcher_names:
-            dispatchers = {name: self.alert_dispatchers[name] for name in dispatcher_names
-                          if name in self.alert_dispatchers}
+            dispatchers = {
+                name: self.alert_dispatchers[name]
+                for name in dispatcher_names
+                if name in self.alert_dispatchers
+            }
 
         with self.buffer_lock:
             alerts_to_dispatch = self.alert_buffer.copy()
@@ -504,9 +550,7 @@ class UniversalIntegrationManager:
 
         self.running = True
         self.export_thread = threading.Thread(
-            target=self._background_export_loop,
-            args=(interval,),
-            daemon=True
+            target=self._background_export_loop, args=(interval,), daemon=True
         )
         self.export_thread.start()
         logging.info(f"Started background export with {interval}s interval")
@@ -543,7 +587,9 @@ class UniversalIntegrationManager:
             alerts_config = config["alerts"]
             for dispatcher_name, dispatcher_config in alerts_config.items():
                 if dispatcher_config.get("enabled", False):
-                    self._create_dispatcher_from_config(dispatcher_name, dispatcher_config)
+                    self._create_dispatcher_from_config(
+                        dispatcher_name, dispatcher_config
+                    )
 
     def _create_exporter_from_config(self, name: str, config: Dict[str, Any]):
         """Create exporter from configuration."""
@@ -553,13 +599,11 @@ class UniversalIntegrationManager:
             exporter = PrometheusExporter()
         elif exporter_type == "statsd":
             exporter = StatsDExporter(
-                host=config.get("host", "localhost"),
-                port=config.get("port", 8125)
+                host=config.get("host", "localhost"), port=config.get("port", 8125)
             )
         elif exporter_type == "dogstatsd":
             exporter = DogStatsDExporter(
-                host=config.get("host", "localhost"),
-                port=config.get("port", 8125)
+                host=config.get("host", "localhost"), port=config.get("port", 8125)
             )
         else:
             logging.warning(f"Unknown exporter type: {exporter_type}")
@@ -574,7 +618,9 @@ class UniversalIntegrationManager:
         if dispatcher_type == "pagerduty":
             dispatcher = PagerDutyDispatcher(
                 routing_key=config["routing_key"],
-                api_url=config.get("api_url", "https://events.pagerduty.com/v2/enqueue")
+                api_url=config.get(
+                    "api_url", "https://events.pagerduty.com/v2/enqueue"
+                ),
             )
         elif dispatcher_type == "slack":
             dispatcher = SlackDispatcher(webhook_url=config["webhook_url"])
@@ -582,7 +628,7 @@ class UniversalIntegrationManager:
             dispatcher = GenericWebhookDispatcher(
                 webhook_url=config["webhook_url"],
                 headers=config.get("headers"),
-                template=config.get("template")
+                template=config.get("template"),
             )
         else:
             logging.warning(f"Unknown dispatcher type: {dispatcher_type}")

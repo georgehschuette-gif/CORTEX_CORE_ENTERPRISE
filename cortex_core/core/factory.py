@@ -3,9 +3,10 @@ Factory for creating Cortex Core instances.
 """
 
 import logging
-from typing import Dict, Any, Optional
-import yaml
 from pathlib import Path
+from typing import Any, Dict, Optional
+
+import yaml
 
 from cortex_core.core.cortex_core import CortexCore
 from cortex_core.core.distributed_core import DistributedCortexCore
@@ -18,7 +19,7 @@ def create_cortex(
     config_path: Optional[str] = None,
     config_dict: Optional[Dict[str, Any]] = None,
     security_key: Optional[str] = None,
-    mode: str = "adaptive"
+    mode: str = "adaptive",
 ) -> CortexCore:
     """
     Create a Cortex Core instance.
@@ -37,7 +38,7 @@ def create_cortex(
         config = _load_config(config_path, config_dict)
 
         # Set mode
-        config['system']['mode'] = mode
+        config["system"]["mode"] = mode
 
         # Create instance
         cortex = CortexCore(config=config, security_key=security_key)
@@ -55,7 +56,7 @@ def create_distributed_cortex(
     peers: list,
     config_path: Optional[str] = None,
     config_dict: Optional[Dict[str, Any]] = None,
-    bootstrap_node: Optional[str] = None
+    bootstrap_node: Optional[str] = None,
 ) -> DistributedCortexCore:
     """
     Create a distributed Cortex Core instance.
@@ -75,19 +76,16 @@ def create_distributed_cortex(
         config = _load_config(config_path, config_dict)
 
         # Enable cluster mode
-        config['cluster'] = {
-            'enabled': True,
-            'node_id': node_id,
-            'peers': peers,
-            'bootstrap_node': bootstrap_node
+        config["cluster"] = {
+            "enabled": True,
+            "node_id": node_id,
+            "peers": peers,
+            "bootstrap_node": bootstrap_node,
         }
 
         # Create instance
         cortex = DistributedCortexCore(
-            node_id=node_id,
-            peers=peers,
-            config=config,
-            bootstrap_node=bootstrap_node
+            node_id=node_id, peers=peers, config=config, bootstrap_node=bootstrap_node
         )
 
         logger.info(f"Distributed Cortex Core created for node {node_id}")
@@ -99,8 +97,7 @@ def create_distributed_cortex(
 
 
 def _load_config(
-    config_path: Optional[str] = None,
-    config_dict: Optional[Dict[str, Any]] = None
+    config_path: Optional[str] = None, config_dict: Optional[Dict[str, Any]] = None
 ) -> Dict[str, Any]:
     """Load configuration from file or dictionary."""
     if config_dict is not None:
@@ -115,12 +112,13 @@ def _load_config(
     if not path.exists():
         raise ConfigurationError(f"Config file not found: {config_path}")
 
-    if path.suffix in ['.yaml', '.yml']:
-        with open(path, 'r') as f:
+    if path.suffix in [".yaml", ".yml"]:
+        with open(path, "r") as f:
             config = yaml.safe_load(f)
-    elif path.suffix == '.json':
+    elif path.suffix == ".json":
         import json
-        with open(path, 'r') as f:
+
+        with open(path, "r") as f:
             config = json.load(f)
     else:
         raise ConfigurationError(f"Unsupported config format: {path.suffix}")
@@ -131,26 +129,19 @@ def _load_config(
 def _get_default_config() -> Dict[str, Any]:
     """Get default configuration."""
     return {
-        'system': {
-            'name': 'Cortex Core',
-            'version': '3.0.0',
-            'mode': 'adaptive',
-            'log_level': 'INFO'
+        "system": {
+            "name": "Cortex Core",
+            "version": "3.0.0",
+            "mode": "adaptive",
+            "log_level": "INFO",
         },
-        'security': {
-            'encryption': True,
-            'validation': True,
-            'audit_logging': True
+        "security": {"encryption": True, "validation": True, "audit_logging": True},
+        "performance": {"caching": True, "optimization": True},
+        "cognitive": {
+            "intuition": {},
+            "logic": {},
+            "fusion": {},
+            "executive": {},
+            "memory": {},
         },
-        'performance': {
-            'caching': True,
-            'optimization': True
-        },
-        'cognitive': {
-            'intuition': {},
-            'logic': {},
-            'fusion': {},
-            'executive': {},
-            'memory': {}
-        }
     }

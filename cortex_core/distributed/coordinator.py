@@ -3,7 +3,7 @@ Distributed Coordinator.
 """
 
 import logging
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 
@@ -37,8 +37,7 @@ class DistributedCoordinator:
 
     async def join(self, bootstrap_node: str):
         """Join the cluster via bootstrap node."""
-        logger.info(
-            f"Node {self.node_id} joining cluster via {bootstrap_node}")
+        logger.info(f"Node {self.node_id} joining cluster via {bootstrap_node}")
 
     async def ping(self, node_id: str) -> bool:
         """Ping a node to check if it's responsive."""
@@ -56,7 +55,7 @@ class DistributedCoordinator:
         clears the flag — allowing tests and callers to exercise the
         network-failure path deterministically.
         """
-        if getattr(self, 'fail_next_get_nodes', False):
+        if getattr(self, "fail_next_get_nodes", False):
             self.fail_next_get_nodes = False
             raise ConnectionError("simulated network failure on get_nodes")
 
