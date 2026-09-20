@@ -2,29 +2,32 @@
 Setup configuration for Cortex Core.
 """
 
-from setuptools import setup, find_packages
 from pathlib import Path
 
+from setuptools import find_packages, setup
+
 # Read version
-with open('cortex_core/version.py', 'r') as f:
-    exec(f.read())  # Defines __version__
+with open("cortex_core/version.py", "r") as f:
+    exec(f.read())  # Defines "1.0.0"
 
 # Read long description
-readme_path = Path(__file__).parent / 'README.md'
-long_description = readme_path.read_text(encoding='utf-8') if readme_path.exists() else ""
+readme_path = Path(__file__).parent / "README.md"
+long_description = (
+    readme_path.read_text(encoding="utf-8") if readme_path.exists() else ""
+)
 
 setup(
     name="cortex-core",
-    version=__version__,
+    version="1.0.0",
     author="Cortex Core Team",
     author_email="contact@cortex-core.ai",
     description="Advanced Neural-Symbolic AI System with Security & Autonomy",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/cortex-core/cortex-core",
-    packages=find_packages(include=['cortex_core', 'cortex_core.*']),
+    packages=find_packages(include=["cortex_core", "cortex_core.*"]),
     package_data={
-        'cortex_core': ['config/*.yaml', 'config/*.yml'],
+        "cortex_core": ["config/*.yaml", "config/*.yml"],
     },
     classifiers=[
         "Development Status :: 4 - Beta",

@@ -1,0 +1,65 @@
+# Pre-commit hooks configuration for Cortex Core Enterprise
+#
+# The Python tool hooks (black, isort, flake8, mypy) are declared as
+# `local` hooks with `language: system`, so pre-commit runs the tools
+# already installed in the project venv.
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+        args: ["--allow-multiple-documents"]
+      - id: check-added-large-files
+        args: ["--maxkb=1000"]
+      - id: check-merge-conflict
+      - id: check-json
+      - id: check-toml
+      - id: check-xml
+      - id: debug-statements
+      - id: check-docstring-first
+      - id: requirements-txt-fixer
+
+  - repo: https://github.com/Lucas-C/pre-commit-hooks
+    rev: v1.5.1
+    hooks:
+      - id: forbid-crlf
+      - id: remove-crlf
+      - id: forbid-tabs
+      - id: remove-tabs
+
+  - repo: local
+    hooks:
+      - id: black
+        name: black
+        entry: .venv/Scripts/python.exe -m black
+        language: system
+        types: [python]
+        pass_filenames: true
+
+      - id: isort
+        name: isort
+        entry: .venv/Scripts/python.exe -m isort
+        language: system
+        types: [python]
+        args: ["--profile", "black"]
+        pass_filenames: true
+
+      - id: flake8
+        name: flake8
+        entry: .venv/Scripts/python.exe -m flake8
+        language: system
+        types: [python]
+        args: ["--max-line-length=88", "--extend-ignore=E203,W503"]
+        exclude: __pycache__,migrations
+        pass_filenames: true
+
+      - id: mypy
+        name: mypy
+        entry: .venv/Scripts/python.exe -m mypy
+        language: system
+        types: [python]
+        pass_filenames: false
+        args: ["cortex_core"]

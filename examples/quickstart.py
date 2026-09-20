@@ -3,11 +3,13 @@ Quickstart example for Cortex Core.
 """
 
 import logging
+
 from cortex_core import create_cortex
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
 
 def main():
     """Quickstart example."""
@@ -18,10 +20,7 @@ def main():
     try:
         # Create Cortex Core instance
         print("\n1. Creating Cortex Core instance...")
-        cortex = create_cortex(
-            mode="adaptive",
-            security_key="demo-security-key-123"
-        )
+        cortex = create_cortex(mode="adaptive", security_key="demo-security-key-123")
 
         # Check system status
         print("\n2. Checking system status...")
@@ -41,16 +40,16 @@ def main():
                 "port": 443,
                 "protocol": "HTTPS",
                 "anomaly_score": 0.85,
-                "timestamp": "2024-01-15T10:30:00Z"
+                "timestamp": "2024-01-15T10:30:00Z",
             },
-            "priority": "high"
+            "priority": "high",
         }
 
         result = cortex.process(intelligence_data)
 
-        print(f"\n4. Processing Results:")
+        print("\n4. Processing Results:")
         print(f"   Success: {result['success']}")
-        if result['success']:
+        if result["success"]:
             print(f"   Decision: {result.get('decision', 'N/A')}")
             print(f"   Processing time: {result.get('processing_time', 0):.3f}s")
             print(f"   Memory ID: {result.get('memory_id', 'N/A')}")
@@ -59,7 +58,7 @@ def main():
 
         # Show metrics
         print("\n5. Performance Metrics:")
-        metrics = cortex.get_status()['metrics']
+        metrics = cortex.get_status()["metrics"]
         print(f"   Total processed: {metrics['total_processed']}")
         print(f"   Success rate: {metrics['success_rate']:.1%}")
         print(f"   Avg processing time: {metrics['avg_processing_time']:.3f}s")
@@ -73,6 +72,7 @@ def main():
     except Exception as e:
         print(f"\n❌ Error: {e}")
         raise
+
 
 if __name__ == "__main__":
     main()

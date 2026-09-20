@@ -4,16 +4,16 @@ Advanced Cortex Core Example - Autonomous Intelligence Processing
 
 import asyncio
 import logging
-import json
-from typing import Dict, Any, List
-from cortex_core import create_cortex, create_distributed_cortex
+from typing import Any, Dict, List
+
+from cortex_core import create_cortex
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
+
 
 class AutonomousAgent:
     """
@@ -22,15 +22,14 @@ class AutonomousAgent:
 
     def __init__(self):
         self.cortex = create_cortex(
-            mode="adaptive",
-            security_key="demo-security-key-123"
+            mode="adaptive", security_key="demo-security-key-123"
         )
         self.memory = []
         self.goals = [
             "Analyze security threats",
             "Optimize system performance",
             "Generate insights from data",
-            "Learn from interactions"
+            "Learn from interactions",
         ]
 
     async def run_autonomous_cycle(self):
@@ -46,7 +45,7 @@ class AutonomousAgent:
         insights = []
         for data in intelligence_data:
             result = self.cortex.process(data)
-            if result['success']:
+            if result["success"]:
                 insights.append(result)
                 logger.info(f"✓ Processed intelligence: {result['decision']}")
             else:
@@ -78,9 +77,9 @@ class AutonomousAgent:
                     "connections": 15420,
                     "blocked_attempts": 23,
                     "unusual_patterns": 5,
-                    "timestamp": "2024-01-15T10:30:00Z"
+                    "timestamp": "2024-01-15T10:30:00Z",
                 },
-                "priority": "high"
+                "priority": "high",
             },
             {
                 "type": "system_metrics",
@@ -91,9 +90,9 @@ class AutonomousAgent:
                     "disk_io": 1240,
                     "network_io": 890,
                     "active_processes": 156,
-                    "timestamp": "2024-01-15T10:30:00Z"
+                    "timestamp": "2024-01-15T10:30:00Z",
                 },
-                "priority": "medium"
+                "priority": "medium",
             },
             {
                 "type": "user_behavior",
@@ -105,12 +104,12 @@ class AutonomousAgent:
                     "feature_usage": {
                         "search": 0.45,
                         "analytics": 0.32,
-                        "reports": 0.23
+                        "reports": 0.23,
                     },
-                    "timestamp": "2024-01-15T10:30:00Z"
+                    "timestamp": "2024-01-15T10:30:00Z",
                 },
-                "priority": "medium"
-            }
+                "priority": "medium",
+            },
         ]
 
         return intelligence_sources
@@ -123,12 +122,14 @@ class AutonomousAgent:
 
         # Store insights in memory
         for insight in insights:
-            self.memory.append({
-                'timestamp': insight.get('metadata', {}).get('timestamp'),
-                'decision': insight.get('decision'),
-                'analysis': insight.get('analysis'),
-                'processing_time': insight.get('processing_time')
-            })
+            self.memory.append(
+                {
+                    "timestamp": insight.get("metadata", {}).get("timestamp"),
+                    "decision": insight.get("decision"),
+                    "analysis": insight.get("analysis"),
+                    "processing_time": insight.get("processing_time"),
+                }
+            )
 
         # Limit memory size
         if len(self.memory) > 100:
@@ -137,12 +138,14 @@ class AutonomousAgent:
         # Analyze patterns in decisions
         decision_counts = {}
         for item in self.memory[-20:]:  # Last 20 decisions
-            decision = item['decision']
+            decision = item["decision"]
             decision_counts[decision] = decision_counts.get(decision, 0) + 1
 
         logger.info(f"Decision patterns: {decision_counts}")
 
-    async def generate_actions(self, insights: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    async def generate_actions(
+        self, insights: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
         """
         Generate actions based on insights.
         """
@@ -151,22 +154,26 @@ class AutonomousAgent:
         actions = []
 
         for insight in insights:
-            decision = insight.get('decision', '')
+            decision = insight.get("decision", "")
 
-            if 'PROCEED' in decision:
-                actions.append({
-                    'type': 'optimize',
-                    'target': 'system_performance',
-                    'reason': 'Positive analysis results',
-                    'confidence': insight.get('processing_time', 0)
-                })
-            elif 'REVIEW' in decision:
-                actions.append({
-                    'type': 'investigate',
-                    'target': 'anomalies',
-                    'reason': 'Potential issues detected',
-                    'priority': 'high'
-                })
+            if "PROCEED" in decision:
+                actions.append(
+                    {
+                        "type": "optimize",
+                        "target": "system_performance",
+                        "reason": "Positive analysis results",
+                        "confidence": insight.get("processing_time", 0),
+                    }
+                )
+            elif "REVIEW" in decision:
+                actions.append(
+                    {
+                        "type": "investigate",
+                        "target": "anomalies",
+                        "reason": "Potential issues detected",
+                        "priority": "high",
+                    }
+                )
 
         return actions
 
@@ -177,14 +184,14 @@ class AutonomousAgent:
         logger.info("⚡ Executing actions...")
 
         for action in actions:
-            action_type = action['type']
+            action_type = action["type"]
 
-            if action_type == 'optimize':
+            if action_type == "optimize":
                 logger.info(f"🔧 Optimizing {action['target']}")
                 # Simulate optimization
                 await asyncio.sleep(0.1)
 
-            elif action_type == 'investigate':
+            elif action_type == "investigate":
                 logger.info(f"🔍 Investigating {action['target']}")
                 # Simulate investigation
                 await asyncio.sleep(0.2)
@@ -223,19 +230,20 @@ class AutonomousAgent:
         """
         Adapt behavior based on system status.
         """
-        metrics = status.get('metrics', {})
+        metrics = status.get("metrics", {})
 
         # Adapt based on success rate
-        success_rate = metrics.get('success_rate', 0)
+        success_rate = metrics.get("success_rate", 0)
         if success_rate < 0.8:
             logger.warning("Low success rate detected, adjusting processing mode")
             # Could switch to more conservative mode
 
         # Adapt based on processing time
-        avg_time = metrics.get('avg_processing_time', 0)
+        avg_time = metrics.get("avg_processing_time", 0)
         if avg_time > 2.0:
             logger.warning("High processing time detected, optimizing performance")
             # Could enable caching or optimization
+
 
 async def main():
     """Main autonomous agent demonstration."""
@@ -265,7 +273,7 @@ async def main():
         # Show final status
         print("\n3. Final system status:")
         final_status = agent.cortex.get_status()
-        metrics = final_status['metrics']
+        metrics = final_status["metrics"]
         print(f"   Total processed: {metrics['total_processed']}")
         print(".1%")
         print(".3f")
@@ -291,6 +299,7 @@ async def main():
     except Exception as e:
         print(f"\n❌ Error: {e}")
         raise
+
 
 if __name__ == "__main__":
     asyncio.run(main())

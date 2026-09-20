@@ -4561,26 +4561,54 @@ class TestFinalCoverage:
     def test_final_file_handler_emit_error(self):
         """FileHandler.emit except block (137-138)."""
         import logging
+        import os
+        import tempfile
 
-        from cortex_core.integration.logging import EnterpriseJSONFormatter, FileHandler
+        from cortex_core.integration.logging import (
+            EnterpriseJSONFormatter,
+            FileHandler,
+        )
 
-        # Use an invalid path to force an error on open
-        handler = FileHandler(
-            file_path="invalidpath",
-            formatter=EnterpriseJSONFormatter(),
-        )
-        handler.setFormatter(EnterpriseJSONFormatter())
-        record = logging.LogRecord(
-            name="t",
-            level=logging.INFO,
-            pathname="t.py",
-            lineno=1,
-            msg="fail",
-            args=(),
-            exc_info=None,
-        )
-        # Should not raise; handleError captures internally
-        handler.emit(record)
+        # Construct the handler against a real, valid path first so
+        # __init__ (which creates the parent directory) succeeds. Then
+        # point the handler at a path whose parent component is a regular
+        # file, so the next open() inside emit() raises. This exercises
+        # the except branch in FileHandler.emit without leaving artifacts
+        # behind.
+        with tempfile.TemporaryDirectory() as tmpdir:
+            good_path = os.path.join(tmpdir, "ok.log")
+            handler = FileHandler(
+                file_path=good_path,
+                formatter=EnterpriseJSONFormatter(),
+            )
+            handler.setFormatter(EnterpriseJSONFormatter())
+
+            # Make the next open() fail: parent is a regular file.
+            blocker = os.path.join(tmpdir, "blocker")
+            with open(blocker, "w", encoding="utf-8") as bf:
+                bf.write("not a directory")
+            handler.file_path = (
+                __import__("pathlib").Path(blocker) / "child" / "cannot_open.log"
+            )
+            # Drop any cached handle so emit() attempts a fresh open().
+            if getattr(handler, "current_file", None) is not None:
+                try:
+                    handler.current_file.close()
+                except Exception:
+                    pass
+                handler.current_file = None
+
+            record = logging.LogRecord(
+                name="t",
+                level=logging.INFO,
+                pathname="t.py",
+                lineno=1,
+                msg="fail",
+                args=(),
+                exc_info=None,
+            )
+            # Should not raise; handleError captures internally.
+            handler.emit(record)
 
     def test_final_syslog_emit_error(self):
         """SyslogHandler.emit except block (163-164)."""

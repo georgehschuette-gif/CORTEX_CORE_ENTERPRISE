@@ -186,3 +186,8 @@ docs/source/_build/
 
 # Notebooks
 notebooks/.ipynb_checkpoints/
+
+# Added during lint cleanup
+.venv/
+.ruff_cache/
+invalidpath
