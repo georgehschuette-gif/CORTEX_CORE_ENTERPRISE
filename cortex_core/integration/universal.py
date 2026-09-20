@@ -131,7 +131,10 @@ class PrometheusExporter(MetricsExporter):
                         labelnames=list(metric.tags.keys()),
                         registry=self.registry
                     )
-                self.gauges[metric.name].labels(**metric.tags).set(metric.value)
+                if metric.tags:
+                    self.gauges[metric.name].labels(**metric.tags).set(metric.value)
+                else:
+                    self.gauges[metric.name].set(metric.value)
             elif metric.metric_type == "counter":
                 if metric.name not in self.counters:
                     self.counters[metric.name] = Counter(
@@ -140,7 +143,10 @@ class PrometheusExporter(MetricsExporter):
                         labelnames=list(metric.tags.keys()),
                         registry=self.registry
                     )
-                self.counters[metric.name].labels(**metric.tags).inc(metric.value)
+                if metric.tags:
+                    self.counters[metric.name].labels(**metric.tags).inc(metric.value)
+                else:
+                    self.counters[metric.name].inc(metric.value)
             return True
         except Exception as e:
             logging.error(f"Failed to export metric to Prometheus: {e}")
@@ -384,6 +390,9 @@ class UniversalIntegrationManager:
         self.buffer_lock = threading.Lock()
         self.export_thread: Optional[threading.Thread] = None
         self.running = False
+        # Seconds to sleep between retries when the background export loop
+        # encounters an error. Configurable so tests don't have to wait 5s.
+        self.error_sleep: float = 5.0
 
         # Initialize default exporters
         self._setup_default_exporters()
@@ -518,7 +527,7 @@ class UniversalIntegrationManager:
                 time.sleep(interval)
             except Exception as e:
                 logging.error(f"Error in background export loop: {e}")
-                time.sleep(5)
+                time.sleep(self.error_sleep)
 
     def configure_from_config(self, config: Dict[str, Any]):
         """Configure integrations from configuration."""

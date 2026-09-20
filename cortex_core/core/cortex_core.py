@@ -64,7 +64,7 @@ class CortexCore:
         """
         self.config = self._validate_config(config)
         self.security_key = security_key
-        self.start_time = time.time()
+        self.start_time = time.perf_counter()
 
         # Initialize enterprise logging
         self._init_enterprise_logging()
@@ -190,11 +190,11 @@ class CortexCore:
             SecurityError: If validation fails
             ProcessingError: If processing fails
         """
-        metrics = ProcessingMetrics(start_time=time.time(), success=False)
+        metrics = ProcessingMetrics(start_time=time.perf_counter(), success=False)
 
         # Create correlation logger for this request
         correlation_logger = enterprise_logger.create_correlation_logger(
-            correlation_id=data.get('correlation_id', f"req-{int(time.time())}")
+            correlation_id=data.get('correlation_id', f"req-{int(time.perf_counter())}")
         )
 
         try:
@@ -219,9 +219,9 @@ class CortexCore:
                         f"Validation failed: {validated_data.get('errors')}")
 
             # 2. Intuitive processing (right hemisphere)
-            intuition_start = time.time()
+            intuition_start = time.perf_counter()
             intuitive_results = self.intuition.process(data)
-            intuition_duration = time.time() - intuition_start
+            intuition_duration = time.perf_counter() - intuition_start
             metrics.component_times['intuition'] = intuition_duration
 
             # Record intuition metrics
@@ -232,9 +232,9 @@ class CortexCore:
             )
 
             # 3. Logical processing (left hemisphere)
-            logic_start = time.time()
+            logic_start = time.perf_counter()
             logical_results = self.logic.analyze(data)
-            logic_duration = time.time() - logic_start
+            logic_duration = time.perf_counter() - logic_start
             metrics.component_times['logic'] = logic_duration
 
             # Record logic metrics
@@ -245,10 +245,10 @@ class CortexCore:
             )
 
             # 4. Neural-symbolic fusion
-            fusion_start = time.time()
+            fusion_start = time.perf_counter()
             fused_results = self.fusion.fuse(
                 intuitive_results, logical_results)
-            fusion_duration = time.time() - fusion_start
+            fusion_duration = time.perf_counter() - fusion_start
             metrics.component_times['fusion'] = fusion_duration
 
             # Record fusion metrics
@@ -259,9 +259,9 @@ class CortexCore:
             )
 
             # 5. Executive decision making
-            executive_start = time.time()
+            executive_start = time.perf_counter()
             decision = self.executive.decide(fused_results)
-            executive_duration = time.time() - executive_start
+            executive_duration = time.perf_counter() - executive_start
             metrics.component_times['executive'] = executive_duration
 
             # Record executive metrics
@@ -272,7 +272,7 @@ class CortexCore:
             )
 
             # 6. Memory storage
-            memory_start = time.time()
+            memory_start = time.perf_counter()
             memory_id = self.memory.store({
                 'data': data,
                 'intuitive': intuitive_results,
@@ -281,7 +281,7 @@ class CortexCore:
                 'decision': decision,
                 'timestamp': datetime.utcnow().isoformat()
             })
-            memory_duration = time.time() - memory_start
+            memory_duration = time.perf_counter() - memory_start
             metrics.component_times['memory'] = memory_duration
 
             # Record memory metrics
@@ -292,7 +292,7 @@ class CortexCore:
             )
 
             # Calculate total processing time
-            total_duration = time.time() - metrics.start_time
+            total_duration = time.perf_counter() - metrics.start_time
 
             # 7. Prepare response
             response = {
@@ -310,7 +310,7 @@ class CortexCore:
             }
 
             # 8. Update metrics
-            metrics.end_time = time.time()
+            metrics.end_time = time.perf_counter()
             metrics.success = True
             self._record_metrics(metrics)
 
@@ -337,12 +337,12 @@ class CortexCore:
             return response
 
         except Exception as e:
-            metrics.end_time = time.time()
+            metrics.end_time = time.perf_counter()
             metrics.error = str(e)
             self._record_metrics(metrics)
 
             # Calculate failure duration
-            failure_duration = time.time() - metrics.start_time
+            failure_duration = time.perf_counter() - metrics.start_time
 
             # Record failure metrics and alert
             integration_manager.record_metric(

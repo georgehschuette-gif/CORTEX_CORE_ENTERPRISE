@@ -15,8 +15,9 @@ class HealthMonitor:
     Health monitoring system for Cortex Core components.
     """
 
-    def __init__(self, check_interval: int = 30):
+    def __init__(self, check_interval: int = 30, error_pause: float = 5):
         self.check_interval = check_interval
+        self.error_pause = error_pause
         self.is_running = False
         self.thread = None
         self.health_checks: Dict[str, Callable[[], bool]] = {}
@@ -63,7 +64,7 @@ class HealthMonitor:
                 time.sleep(self.check_interval)
             except Exception as e:
                 logger.error(f"Health monitoring error: {e}")
-                time.sleep(5)  # Brief pause on error
+                time.sleep(self.error_pause)  # Brief pause on error
 
     def _perform_checks(self):
         """Perform all registered health checks."""

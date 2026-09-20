@@ -11,7 +11,7 @@ with open('cortex_core/version.py', 'r') as f:
 
 # Read long description
 readme_path = Path(__file__).parent / 'README.md'
-long_description = readme_path.read_text() if readme_path.exists() else ""
+long_description = readme_path.read_text(encoding='utf-8') if readme_path.exists() else ""
 
 setup(
     name="cortex-core",
@@ -71,7 +71,7 @@ setup(
             "mypy>=0.9.0",
         ],
         "gpu": [
-            "torch>=1.9.0+cu113",
+            "torch>=1.9.0",
             "nvidia-ml-py3>=7.0.0",
         ],
     },

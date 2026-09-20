@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from cortex_core.core.factory import create_cortex
-from cortex_core.config import load_config
+from cortex_core.utils.config import load_config
 from cortex_core.integration.api import EnterpriseAPI
 from cortex_core.integration.logging import enterprise_logger
 
@@ -53,7 +53,7 @@ async def startup_event():
         config = load_config()
 
         # Create Cortex Core instance
-        cortex_core = create_cortex(config)
+        cortex_core = create_cortex(config_dict=config)
 
         # Initialize enterprise API
         enterprise_api = EnterpriseAPI(cortex_core, cortex_core.health_monitor)

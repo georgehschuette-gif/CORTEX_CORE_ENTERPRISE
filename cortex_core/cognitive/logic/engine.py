@@ -69,22 +69,22 @@ class LogicEngine:
         # Simple logical pattern extraction
         if isinstance(data, dict):
             for key, value in data.items():
-                if isinstance(value, (int, float)):
-                    # Quantitative pattern
-                    pattern = {
-                        'type': 'quantitative',
-                        'key': key,
-                        'value': value,
-                        'logical_type': 'measurement'
-                    }
-                    patterns.append(pattern)
-                elif isinstance(value, bool):
+                if isinstance(value, bool):
                     # Boolean pattern
                     pattern = {
                         'type': 'boolean',
                         'key': key,
                         'value': value,
                         'logical_type': 'condition'
+                    }
+                    patterns.append(pattern)
+                elif isinstance(value, (int, float)):
+                    # Quantitative pattern
+                    pattern = {
+                        'type': 'quantitative',
+                        'key': key,
+                        'value': value,
+                        'logical_type': 'measurement'
                     }
                     patterns.append(pattern)
                 elif isinstance(value, str):
